@@ -1,0 +1,15 @@
+{
+  "protocol_version": "0.2",
+  "profiles": [
+    "minimal"
+  ],
+  "origin": "store:6f1c2a9e-4b7d-4e2a-9c1f-3d8e5a7b0c42",
+  "exported_at": "2026-10-20T09:00:00Z",
+  "selection": "snapshot",
+  "intent": "copy",
+  "media_types": [
+    "text/markdown",
+    "application/json",
+    "text/plain"
+  ]
+}

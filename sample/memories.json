@@ -1,0 +1,323 @@
+[
+  {
+    "identifier": "9b2e7c14-3f6a-4d1e-8a5b-2c7f9e0d4b31",
+    "path": "team/preferences/status-update-day.md",
+    "title": "Status updates move to Friday",
+    "media_type": "text/markdown",
+    "tags": [
+      "preference",
+      "team-process"
+    ],
+    "scope": [
+      "team:platform"
+    ],
+    "created_at": "2026-09-15T09:30:00Z",
+    "valid_from": "2026-09-15T00:00:00Z",
+    "version": {
+      "value": 2,
+      "comparator": "integer"
+    },
+    "provenance": [
+      {
+        "id": "user:jordan",
+        "kind": "human",
+        "contribution": "instructed",
+        "at": "2026-09-15T09:28:00Z"
+      },
+      {
+        "id": "agent:coding-assistant",
+        "kind": "agent",
+        "name": "example-model-1",
+        "contribution": "authored"
+      },
+      {
+        "id": "user:sam",
+        "kind": "human",
+        "contribution": "approved",
+        "at": "2026-09-15T09:30:00Z"
+      },
+      {
+        "id": "agent:review-judge",
+        "kind": "agent",
+        "contribution": "verified",
+        "name": "example-judge-1",
+        "at": "2026-10-01T12:00:00Z"
+      }
+    ],
+    "evidence": [
+      {
+        "ref": "transcripts/2026-09-15-standup#turn-14",
+        "relation": "stated",
+        "dangling": true
+      }
+    ],
+    "links": [
+      {
+        "target": "9b2e7c14-3f6a-4d1e-8a5b-2c7f9e0d4b31",
+        "version": 1,
+        "rel": "supersedes"
+      }
+    ],
+    "body": "Status updates are due **Fridays** from Sep 15. They were due Tuesdays before that.",
+    "checksum": "sha256:1649e54fa2b52aea6e52bda7da47db2c4000d33e389539c5f1415e47d3b444e8"
+  },
+  {
+    "identifier": "2f8a1c3e-pnpm",
+    "path": "projects/web/tooling.md",
+    "title": "Use pnpm in the web repo",
+    "media_type": "text/markdown",
+    "tags": [
+      "preference",
+      "tooling"
+    ],
+    "scope": [
+      "repo:web"
+    ],
+    "created_at": "2026-08-02T14:11:00Z",
+    "version": {
+      "value": 1,
+      "comparator": "integer"
+    },
+    "provenance": [
+      {
+        "id": "user:jordan",
+        "kind": "human",
+        "contribution": "instructed",
+        "at": "2026-08-02T14:10:00Z"
+      },
+      {
+        "id": "agent:coding-assistant",
+        "kind": "agent",
+        "name": "example-model-1",
+        "contribution": "authored"
+      }
+    ],
+    "evidence": [
+      {
+        "ref": "transcripts/2026-08-02-setup#turn-3",
+        "relation": "stated",
+        "dangling": true
+      }
+    ],
+    "x_editor_rule_glob": "apps/web/**",
+    "body": "Use `pnpm`, never `npm` or `yarn`, in `apps/web`. The lockfile is `pnpm-lock.yaml`.",
+    "checksum": "sha256:3f900da1e25ecc1be86518c20142fcc0ce6b50c9952c6c3bbaa6c5fc097b8fb9"
+  },
+  {
+    "identifier": "c41d7e02-flaky",
+    "path": "projects/web/known-issues.md",
+    "title": "Checkout e2e test is flaky until the fix lands",
+    "media_type": "text/markdown",
+    "tags": [
+      "workaround",
+      "testing"
+    ],
+    "scope": [
+      "repo:web"
+    ],
+    "created_at": "2026-10-06T16:45:00Z",
+    "valid_until": "2026-11-01T00:00:00Z",
+    "provenance": [
+      {
+        "id": "agent:coding-assistant",
+        "kind": "agent",
+        "name": "example-model-1",
+        "contribution": "authored"
+      }
+    ],
+    "evidence": [
+      {
+        "ref": "https://ci.example.com/runs/88213",
+        "relation": "observed",
+        "dangling": true
+      }
+    ],
+    "links": [
+      {
+        "target": "e7b9a210-billing-owner",
+        "rel": "relates_to"
+      }
+    ],
+    "body": "`checkout.spec.ts` fails about 1 run in 6 on the card-decline path. Retry once, then flag Maya. Remove this workaround after Nov 1."
+  },
+  {
+    "identifier": "5a0f93bd-rate-limit",
+    "path": "projects/payments/limits.md",
+    "title": "Payments API rate limit",
+    "media_type": "text/markdown",
+    "tags": [
+      "fact",
+      "system-of-record"
+    ],
+    "scope": [
+      "team:platform"
+    ],
+    "created_at": "2026-07-21T10:02:00Z",
+    "stub": true,
+    "provenance": [
+      {
+        "id": "agent:coding-assistant",
+        "kind": "agent",
+        "name": "example-model-1",
+        "contribution": "imported"
+      }
+    ],
+    "evidence": [
+      {
+        "ref": "https://payments.example.com/docs/limits",
+        "relation": "observed",
+        "dangling": true
+      }
+    ],
+    "body": "The payments API is rate-limited per merchant. Read the current limit from the provider docs before load testing; do not copy the number here."
+  },
+  {
+    "identifier": "e7b9a210-billing-owner",
+    "path": "team/people/maya.md",
+    "title": "Maya owns billing",
+    "media_type": "text/markdown",
+    "tags": [
+      "person",
+      "ownership"
+    ],
+    "scope": [
+      "team:platform"
+    ],
+    "created_at": "2026-06-30T11:00:00Z",
+    "valid_from": "2026-06-01T00:00:00Z",
+    "provenance": [
+      {
+        "id": "user:jordan",
+        "kind": "human",
+        "contribution": "authored",
+        "at": "2026-06-30T11:00:00Z"
+      }
+    ],
+    "body": "Maya Chen owns the billing service and reviews every change to the ledger schema."
+  },
+  {
+    "identifier": "0d6e4f88-ledger-decision",
+    "path": "projects/payments/decisions/ledger-store.md",
+    "title": "Decision: Postgres for the ledger",
+    "media_type": "text/markdown",
+    "tags": [
+      "decision",
+      "architecture"
+    ],
+    "scope": [
+      "team:platform"
+    ],
+    "created_at": "2026-09-03T15:20:00Z",
+    "version": {
+      "value": 1,
+      "comparator": "integer"
+    },
+    "provenance": [
+      {
+        "id": "agent:coding-assistant",
+        "kind": "agent",
+        "name": "example-model-1",
+        "contribution": "authored",
+        "at": "2026-09-03T15:20:00Z"
+      },
+      {
+        "id": "user:maya",
+        "kind": "human",
+        "contribution": "approved",
+        "at": "2026-09-03T16:02:00Z"
+      }
+    ],
+    "evidence": [
+      {
+        "ref": "transcripts/2026-09-03-design-review#turn-41",
+        "relation": "stated",
+        "dangling": true
+      }
+    ],
+    "links": [
+      {
+        "target": "e7b9a210-billing-owner",
+        "rel": "relates_to"
+      }
+    ],
+    "body": "We keep the ledger in **Postgres**, not DynamoDB: we need multi-row transactions for refunds. Revisit if write volume passes 5k/s.",
+    "checksum": "sha256:15c588a2393c7e6fe0abb115d168d2913443f28a2a86af1fa51a57499afb4431"
+  },
+  {
+    "identifier": "b3c2e9f1-ci-matrix",
+    "path": "projects/web/ci-matrix.json",
+    "title": "CI matrix the team agreed on",
+    "media_type": "application/json",
+    "tags": [
+      "config",
+      "testing"
+    ],
+    "scope": [
+      "repo:web"
+    ],
+    "created_at": "2026-09-22T09:00:00Z",
+    "provenance": [
+      {
+        "id": "user:jordan",
+        "kind": "human",
+        "contribution": "authored"
+      }
+    ],
+    "body": "{\"node\": [\"20\", \"22\"], \"os\": [\"ubuntu-latest\"], \"browsers\": [\"chromium\", \"webkit\"]}"
+  },
+  {
+    "identifier": "f19a0c77-ships-fridays",
+    "path": "team/patterns/release-rhythm.md",
+    "title": "The team batches releases at the end of the week",
+    "media_type": "text/markdown",
+    "tags": [
+      "observation",
+      "consolidated"
+    ],
+    "scope": [
+      "team:platform"
+    ],
+    "created_at": "2026-10-12T03:00:00Z",
+    "provenance": [
+      {
+        "id": "agent:nightly-consolidator",
+        "kind": "agent",
+        "contribution": "authored",
+        "name": "example-model-2"
+      },
+      {
+        "id": "user:sam",
+        "kind": "human",
+        "contribution": "operates",
+        "at": "2026-10-01T00:00:00Z"
+      }
+    ],
+    "evidence": [
+      {
+        "ref": "9b2e7c14-3f6a-4d1e-8a5b-2c7f9e0d4b31",
+        "relation": "derived"
+      },
+      {
+        "ref": "c41d7e02-flaky",
+        "relation": "derived"
+      }
+    ],
+    "links": [
+      {
+        "target": "9b2e7c14-3f6a-4d1e-8a5b-2c7f9e0d4b31",
+        "rel": "derived_from"
+      },
+      {
+        "target": "c41d7e02-flaky",
+        "rel": "derived_from"
+      }
+    ],
+    "body": "Releases cluster on Thursdays and Fridays, after status updates. Expect review load to peak then."
+  },
+  {
+    "identifier": "MEMORY.md",
+    "media_type": "text/markdown",
+    "created_at": "2026-10-14T00:00:00Z",
+    "body": "The user prefers concise answers."
+  }
+]

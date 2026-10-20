@@ -1,0 +1,910 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Your agent's memory should travel — Open Memory Protocol · FOO session</title>
+<style>
+:root{
+  --paper:#f3efe6;--card:#fffdf8;--ink:#1c1a17;--muted:#6b655b;--rule:#d8d1c2;
+  --accent:#d9481c;--keep:#1f7a5a;--keep-bg:#e3f1ea;--lose:#b3261e;--lose-bg:#f7e2df;
+  --warn:#9a6a00;--warn-bg:#f8eed2;--link:#2a5db0;--link-bg:#e4ebf7;
+  --serif:"Iowan Old Style","Palatino Linotype",Palatino,Georgia,serif;
+  --sans:ui-sans-serif,system-ui,-apple-system,"Segoe UI",sans-serif;
+  --mono:ui-monospace,"SF Mono",Menlo,Consolas,monospace;
+}
+*{box-sizing:border-box}
+html,body{margin:0;height:100%;background:#2a2723;color:var(--ink);font-family:var(--sans)}
+body{overflow:hidden}
+#viewport{position:fixed;inset:0;display:grid;place-items:center}
+#stage{width:1600px;height:900px;position:relative;transform-origin:center center;background:var(--paper);box-shadow:0 20px 60px rgba(0,0,0,.35)}
+.slide{position:absolute;inset:0;padding:64px 88px 72px;display:none;flex-direction:column}
+.slide.active{display:flex}
+.eyebrow{font:600 15px/1 var(--mono);letter-spacing:.08em;text-transform:uppercase;color:var(--accent);margin-bottom:18px}
+h1,h2{font-family:var(--serif);font-weight:600;letter-spacing:-.01em;margin:0}
+h1{font-size:84px;line-height:1.02}
+h2{font-size:52px;line-height:1.08;margin-bottom:26px;max-width:1300px}
+h3{font:600 22px/1.25 var(--sans);margin:0 0 10px}
+p{margin:0}
+.lede{font:400 27px/1.42 var(--serif);color:#3a362f;max-width:1180px}
+.small{font-size:17px;line-height:1.45;color:var(--muted)}
+.foot{margin-top:auto;font:400 19px/1.45 var(--serif);color:#3a362f;border-top:1px solid var(--rule);padding-top:16px}
+.foot b{color:var(--ink)}
+code,.mono{font-family:var(--mono);font-size:.9em}
+.card{background:var(--card);border:1px solid var(--rule);border-radius:10px;padding:20px 22px}
+.grid{display:grid;gap:22px}
+.g2{grid-template-columns:1fr 1fr}.g3{grid-template-columns:repeat(3,1fr)}.g4{grid-template-columns:repeat(4,1fr)}.g5{grid-template-columns:repeat(5,1fr)}
+pre{margin:0;font:400 15px/1.5 var(--mono);white-space:pre-wrap;word-break:break-word}
+.pill{display:inline-block;font:600 12px/1 var(--mono);padding:5px 8px;border-radius:99px;letter-spacing:.03em;text-transform:uppercase;vertical-align:middle}
+.pill.req{background:var(--ink);color:#fff}.pill.aud{background:var(--link-bg);color:var(--link)}.pill.acl{background:var(--warn-bg);color:var(--warn)}.pill.opt{background:#ebe6da;color:var(--muted)}
+.pill.ok{background:var(--keep-bg);color:var(--keep)}.pill.bad{background:var(--lose-bg);color:var(--lose)}.pill.warn{background:var(--warn-bg);color:var(--warn)}
+.status{font:600 12px/1 var(--mono);color:var(--muted);letter-spacing:.04em}
+button,.btn{font:600 15px/1 var(--sans);border:1px solid var(--ink);background:var(--card);color:var(--ink);padding:10px 14px;border-radius:8px;cursor:pointer}
+button:hover{background:#f0eadc}
+button.primary{background:var(--ink);color:#fff}
+button.primary:hover{background:#3a362f}
+button[aria-pressed=true]{background:var(--ink);color:#fff}
+button:disabled{opacity:.4;cursor:default}
+input[type=text],input[type=date]{font:400 16px var(--sans);padding:9px 12px;border:1px solid var(--rule);border-radius:8px;background:#fff}
+.k{color:#7a4bb3}.s{color:#1f7a5a}.n{color:#b3561e}
+.lost{color:var(--lose);text-decoration:line-through}
+.kept{color:var(--keep)}
+/* chrome */
+#bar{position:absolute;left:0;right:0;bottom:0;height:40px;display:flex;align-items:center;gap:16px;padding:0 24px;font:500 13px/1 var(--mono);color:var(--muted);border-top:1px solid var(--rule);background:rgba(243,239,230,.92);z-index:5}
+#bar .spacer{flex:1}
+#progress{position:absolute;left:0;bottom:40px;height:3px;background:var(--accent);transition:width .2s}
+#notes{position:fixed;left:0;right:0;bottom:0;max-height:38vh;overflow:auto;background:#141210;color:#efe9dc;font:400 17px/1.5 var(--sans);padding:18px 28px;display:none;z-index:10;border-top:3px solid var(--accent)}
+#notes.on{display:block}
+#notes h4{margin:0 0 8px;font:600 13px/1 var(--mono);letter-spacing:.08em;text-transform:uppercase;color:#e08a6a}
+aside.notes{display:none}
+#dropveil{position:fixed;inset:0;background:rgba(217,72,28,.88);color:#fff;display:none;place-items:center;font:600 44px/1.2 var(--serif);z-index:20;text-align:center}
+#dropveil.on{display:grid}
+/* slide 1 */
+.title-slide{background:var(--ink);color:#f3efe6}
+.title-slide h1{color:#fff;max-width:1250px}
+.title-slide h1 em{color:#ff9a72;font-style:italic}
+.title-slide .lede{color:#d7d0c2}
+.index-card{position:absolute;right:88px;top:96px;width:430px;background:#fffdf8;color:var(--ink);padding:24px 26px 20px;border-radius:4px;transform:rotate(2.2deg);box-shadow:0 14px 30px rgba(0,0,0,.4);background-image:repeating-linear-gradient(#fffdf8 0 33px,#c9dcef 33px 34px);background-position:0 54px}
+.index-card .t{font:700 26px/1.2 "Marker Felt","Comic Sans MS",var(--sans);color:#c23b13;border-bottom:2px solid #e6a28c;padding-bottom:10px;margin-bottom:10px}
+.index-card p{font:400 21px/34px "Marker Felt","Comic Sans MS",var(--sans)}
+/* shapes slide */
+.shape{display:flex;flex-direction:column;gap:10px}
+.shape .file{font:600 14px/1 var(--mono);color:var(--muted)}
+.shape pre{background:#fff;border:1px solid var(--rule);border-radius:8px;padding:14px;font-size:14px;min-height:150px}
+/* field report */
+.big{font:600 96px/1 var(--serif);color:var(--accent)}
+.big.keep{color:var(--keep)}
+/* nxm */
+.nxm{display:grid;grid-template-columns:1fr 1fr;gap:40px;align-items:center}
+.nxm svg{width:100%;height:380px}
+.nxm .num{font:600 120px/1 var(--serif)}
+input[type=range]{width:420px;accent-color:var(--accent)}
+/* tiers table */
+table{border-collapse:collapse;width:100%;font-size:16px}
+th{font:600 12px/1 var(--mono);letter-spacing:.06em;text-transform:uppercase;color:var(--muted);text-align:left;padding:8px 10px;border-bottom:1px solid var(--rule)}
+td{padding:7px 10px;border-bottom:1px solid #e7e0d1;vertical-align:top}
+td code{font-size:15px}
+/* live */
+.live{display:grid;grid-template-columns:1fr;gap:16px;flex:1;min-height:0}
+.toolbar{display:flex;gap:10px;align-items:center;flex-wrap:wrap}
+.toolbar .src{font:500 14px/1.3 var(--mono);color:var(--muted);margin-left:auto;text-align:right;max-width:560px}
+.pane{background:var(--card);border:1px solid var(--rule);border-radius:10px;flex:1;min-height:0;overflow:hidden;display:flex}
+.pane>.inner{flex:1;overflow:auto;padding:18px 20px}
+.split{display:grid;grid-template-columns:340px 1fr;flex:1;min-height:0}
+.split>div{overflow:auto;padding:16px 18px}
+.split>div:first-child{border-right:1px solid var(--rule)}
+.tree{font:400 15px/1.75 var(--mono)}
+.tree .dir{color:var(--muted)}
+.tree .f{cursor:pointer;border-radius:4px;padding:1px 4px}
+.tree .f:hover,.tree .f.sel{background:var(--link-bg);color:var(--link)}
+.tree .tag{font:600 10px/1 var(--mono);text-transform:uppercase;margin-left:6px;padding:3px 5px;border-radius:4px}
+.tree .tag.load{background:var(--keep-bg);color:var(--keep)}.tree .tag.defer{background:#ebe6da;color:var(--muted)}
+.hit{border-bottom:1px solid #eee5d4;padding:10px 0}
+.hit .t{font:600 17px/1.3 var(--sans)}
+.hit .meta{font:400 13px/1.4 var(--mono);color:var(--muted)}
+mark{background:#ffe1a8;color:inherit;padding:0 1px}
+.ctx{display:grid;grid-template-columns:1fr 1fr;gap:18px}
+.meter{height:14px;background:#ebe6da;border-radius:99px;overflow:hidden}
+.meter>span{display:block;height:100%;background:var(--accent)}
+.audit-row{display:grid;grid-template-columns:2.2fr repeat(5,1fr);gap:8px;align-items:center;font-size:14px;padding:6px 0;border-bottom:1px solid #eee5d4}
+.audit-row.h{font:600 11px/1.2 var(--mono);letter-spacing:.05em;text-transform:uppercase;color:var(--muted)}
+.verdict{display:flex;gap:16px;align-items:center;margin-bottom:12px;flex-wrap:wrap}
+.drop{border:2px dashed var(--accent);border-radius:10px;padding:10px 14px;font:500 14px/1.3 var(--sans);color:var(--accent);cursor:pointer;background:#fff7f2}
+#graph svg text{font:500 14px var(--sans)}
+/* receipts */
+.receipt{font:400 14px/1.45 var(--mono)}
+.receipt .row{display:grid;grid-template-columns:260px 130px 1fr;gap:12px;padding:5px 0;border-bottom:1px dashed var(--rule)}
+.counts{display:flex;gap:26px;font:600 15px/1.3 var(--mono)}
+.counts b{display:block;font:600 40px/1 var(--serif)}
+/* forget */
+.mem-line{display:flex;align-items:center;gap:10px;padding:6px 0;border-bottom:1px solid #eee5d4;font-size:15px}
+.mem-line .id{font:400 12px var(--mono);color:var(--muted)}
+.mem-line.gone{opacity:.45;text-decoration:line-through}
+.mem-line button{padding:5px 9px;font-size:13px;margin-left:auto}
+/* ladder */
+.ladder{display:grid;grid-template-columns:repeat(4,1fr);gap:14px;align-items:end}
+.rung{background:var(--card);border:1px solid var(--rule);border-top:6px solid var(--accent);border-radius:8px;padding:16px}
+/* issues */
+.issue{background:#fffdf8;border:1px solid var(--rule);border-radius:6px;padding:16px 18px;position:relative}
+.issue .no{font:700 13px/1 var(--mono);color:var(--accent)}
+.issue h3{font:600 21px/1.25 var(--serif);margin:8px 0}
+.issue .sides{font-size:15px;line-height:1.45;color:#3a362f}
+.issue .votes{position:absolute;top:12px;right:12px;display:flex;gap:4px;align-items:center}
+.issue .votes button{padding:3px 8px;font-size:13px}
+.issue .votes span{font:600 14px var(--mono);min-width:18px;text-align:center}
+@media print{
+  html,body{background:#fff;overflow:visible;height:auto}
+  #viewport{position:static;display:block}
+  #stage{transform:none!important;box-shadow:none}
+  #stage{height:auto}
+  .slide{position:relative;display:flex!important;height:900px;page-break-after:always}
+  #bar,#progress,#notes{display:none!important}
+}
+@media (prefers-reduced-motion:reduce){*{transition:none!important}}
+</style>
+</head>
+<body>
+<div id="viewport"><div id="stage">
+
+<!-- 1 ─────────────────────────────────────────── -->
+<section class="slide title-slide" data-title="Title">
+  <div class="eyebrow" style="color:#ff9a72">FOO session · Open Memory Protocol (draft v0.2)</div>
+  <h1 style="margin-top:90px;max-width:1000px;font-size:78px">Your agent<br>remembers you.<br><em>Can you take that with you?</em></h1>
+  <p class="lede" style="margin-top:34px;max-width:900px">One exchange format for agent memory, a live demo of what it buys you, and the six arguments we still need to have. Bring a laptop — this deck reads your export.</p>
+  <div class="index-card"><div class="t">Your agent's memory is a hostage</div><p>Let's agree on the export format.<br>Bring a MEMORY.md, AGENTS.md, or a JSON dump. We'll round-trip it live.</p></div>
+  <p style="margin-top:auto;font:500 18px/1.5 var(--mono);color:#a59d8d">Sruly Rosenblat · AI Disclosures Project · drawing on drafts from Letta, IBM, Cognee, Context Nest, Mila + Mozilla<br>Press <b style="color:#fff">N</b> for notes · <b style="color:#fff">→</b> to advance · drop a memory export anywhere</p>
+  <aside class="notes">Open by asking: "Who here uses more than one coding agent?" (most hands). "Who has moved memory between them?" (few). That gap is the session. Set expectations: ~15 minutes of slides with three live demos, then we argue about the open issues. The deck is one HTML file with no network calls; anything you drop on it stays in your browser.</aside>
+</section>
+
+<!-- 2 ─────────────────────────────────────────── -->
+<section class="slide" data-title="Same fact, five shapes">
+  <div class="eyebrow">01 · The problem</div>
+  <h2>The same fact about you lives in five incompatible shapes.</h2>
+  <div class="grid g5">
+    <div class="shape"><span class="file">CLAUDE.md / MEMORY.md</span><pre>## Tooling
+- Use pnpm in apps/web,
+  never npm or yarn.</pre></div>
+    <div class="shape"><span class="file">AGENTS.md</span><pre># Conventions
+Package manager: pnpm
+(apps/web only)</pre></div>
+    <div class="shape"><span class="file">USER.md (§-separated)</span><pre>Prefers pnpm for the
+web repo
+§
+Concise answers</pre></div>
+    <div class="shape"><span class="file">memory block / row</span><pre>{"label": "human",
+ "value": "...uses pnpm
+ in web..."}</pre></div>
+    <div class="shape"><span class="file">hosted assistant memory</span><pre style="color:var(--muted)">(no export of
+ the derived memory —
+ only a chat log)</pre></div>
+  </div>
+  <div class="grid g3" style="margin-top:34px">
+    <div class="card"><h3>No identity</h3><p class="small">Nothing says these five are the same memory. Copy twice and you have two.</p></div>
+    <div class="card"><h3>No provenance</h3><p class="small">Did you say it, or did a model infer it from a lockfile? After a copy, nobody can tell.</p></div>
+    <div class="card"><h3>No lifecycle</h3><p class="small">Delete it in one tool and an old backup puts it straight back in another.</p></div>
+  </div>
+  <p class="foot">Every harness already does memory. They just picked different file names: <code>AGENTS.md</code>, <code>MEMORY.md</code>, <code>USER.md</code>, <code>HUMAN.md</code>. <b>Conventions, not a contract.</b></p>
+  <aside class="notes">Stay concrete: these are illustrations of the conventions, not vendor exports. The point isn't that any one shape is bad — it's that nothing ties them together. Three missing things: identity, provenance, lifecycle. Every later slide maps to one of those three.</aside>
+</section>
+
+<!-- 3 ─────────────────────────────────────────── -->
+<section class="slide" data-title="Export is not portability">
+  <div class="eyebrow">02 · Evidence</div>
+  <h2>"We have an export" is not the same as "it survived the trip."</h2>
+  <p class="lede" style="font-size:22px">A field report from the working group (PR #12, Oct 2): one Hermes agent's memory — <code>MEMORY.md</code>, <code>USER.md</code>, and 204 retrieval chunks — round-tripped through an existing portable format.</p>
+  <div class="grid g3" style="margin-top:30px">
+    <div class="card"><div class="big keep">204/204</div><h3 style="margin-top:12px">chunks came back with the same id and text</h3><p class="small">Markdown files byte-identical. Re-import was idempotent. The signature caught a one-byte change.</p></div>
+    <div class="card"><div class="big">204/204</div><h3 style="margin-top:12px">lost their ingestion time</h3><p class="small">One source document, ingested on 10 different dates. Chunk records had no time field.</p></div>
+    <div class="card"><div class="big">208 → 0</div><h3 style="margin-top:12px">"applied" — and none were stored</h3><p class="small">The import report counted what it was handed, not what it persisted. No warning.</p></div>
+  </div>
+  <p class="foot">Bytes surviving is the easy part. <b>Time, ownership, and an honest receipt</b> are what break — and they're exactly what a protocol can require.</p>
+  <aside class="notes">Credit the Self-Improving Society team who measured this. Note it's a good format that mostly worked — that's the point: even good formats lose the metadata that matters. Also: the Markdown adapter merged §-separated entries into one. These findings became three things in v0.2: created_at on every record, owner/scope in interchange, and import receipts (§8.4).</aside>
+</section>
+
+<!-- 4 ─────────────────────────────────────────── -->
+<section class="slide" data-title="N×M vs N+M">
+  <div class="eyebrow">03 · Why a shared format</div>
+  <h2>Pairwise converters grow with the square. A shared format grows linearly.</h2>
+  <div class="nxm">
+    <div>
+      <svg id="nxm-pairs" viewBox="0 0 400 380" aria-label="Every tool connected to every other tool"></svg>
+      <div style="display:flex;align-items:baseline;gap:16px"><span class="num" id="nxm-a" style="color:var(--lose)">132</span><span class="lede" style="font-size:22px">one-way converters,<br>each written for one pair</span></div>
+    </div>
+    <div>
+      <svg id="nxm-hub" viewBox="0 0 400 380" aria-label="Every tool connected to one shared format"></svg>
+      <div style="display:flex;align-items:baseline;gap:16px"><span class="num" id="nxm-b" style="color:var(--keep)">24</span><span class="lede" style="font-size:22px">adapters: one import<br>and one export per tool</span></div>
+    </div>
+  </div>
+  <div style="display:flex;align-items:center;gap:18px;margin-top:8px">
+    <label for="nxm-n" class="mono" style="font-size:16px">tools: <b id="nxm-nv">12</b></label>
+    <input id="nxm-n" type="range" min="2" max="24" value="12">
+    <span class="small">12 = the coding-agent harnesses our ACP memory-server prototype already reads (Claude Code, Codex, goose, Cursor, Cline, Roo, Kilo, Zed, Gemini CLI, Qwen Code, Continue, Aider).</span>
+  </div>
+  <aside class="notes">Drag the slider. n(n−1) one-way converters vs 2n adapters. The bigger argument isn't the count — it's who writes them. With pairs, the two biggest vendors decide whether you can leave. With a shared format, any small tool that writes one adapter joins the whole network.</aside>
+</section>
+
+<!-- 5 ─────────────────────────────────────────── -->
+<section class="slide" data-title="Scope">
+  <div class="eyebrow">04 · What it is (and isn't)</div>
+  <h2>A transfer format, not a storage format.</h2>
+  <div class="grid g2" style="gap:30px">
+    <div class="card" style="border-top:5px solid var(--keep)">
+      <h3>OMP standardizes</h3>
+      <p style="font:400 21px/1.55 var(--serif)">1. <b>An exchange format</b> — what metadata travels with a memory so another system can import it and represent it well.<br>2. <b>Runtime plug-in points</b> — the shape of what crosses into an agent, so memory systems and harnesses can be chosen independently.</p>
+      <p class="small" style="margin-top:14px">Constraint: everything must work from <b>a folder of files on one laptop</b> up to <b>a multi-user deployment with access control</b>.</p>
+    </div>
+    <div class="card" style="border-top:5px solid var(--muted)">
+      <h3>Left to you to compete on</h3>
+      <p style="font:400 19px/1.6 var(--serif)">Storage, indexing, embeddings · recall signatures, ranking · confidence and decay scoring · federation merge logic · consolidation and "dream" agents · access-control languages · how forgetting is implemented.</p>
+      <p class="small" style="margin-top:14px">Markdown is <b>neither required nor preferred</b>. The body is any text format, declared by <code>media_type</code>.</p>
+    </div>
+  </div>
+  <p class="foot">Three goals judge every field: <b>adoption</b> (a folder of markdown conforms with little work), <b>auditability</b> (when a deployment needs it — tiered, not forced on individuals), <b>room for innovation</b> (standardize shapes, not algorithms).</p>
+  <aside class="notes">This scope came out of the Oct 14 technical working meeting. The "folder on a laptop" constraint is the one that kills most enterprise-shaped proposals, deliberately. If someone asks "why not just use X database's export" — that's a storage format; we're defining the boundary between stores.</aside>
+</section>
+
+<!-- 6 ─────────────────────────────────────────── -->
+<section class="slide" data-title="The memory object">
+  <div class="eyebrow">05 · The object · §2–3</div>
+  <h2>A memory is metadata plus a body. Three fields are required.</h2>
+  <div class="grid" style="grid-template-columns:480px 1fr;gap:34px;align-items:start">
+    <div>
+      <div class="card"><pre><span class="n">---</span>
+<span class="k">identifier</span>: MEMORY.md
+<span class="k">media_type</span>: text/markdown
+<span class="k">created_at</span>: 2026-10-14T00:00:00Z
+<span class="n">---</span>
+
+The user prefers concise answers.</pre></div>
+      <p class="small" style="margin-top:12px">The smallest conforming memory (Appendix C). No <code>provenance</code> means <b>author unknown</b> — a receiver MUST NOT read it as the user's own words.</p>
+    </div>
+    <table>
+      <tr><th>Field</th><th>Tier</th><th>Why it travels</th></tr>
+      <tr><td><code>identifier</code></td><td><span class="pill req">required</span></td><td>Stable across versions. With <code>origin</code>, a global key.</td></tr>
+      <tr><td><code>media_type</code></td><td><span class="pill req">required</span></td><td>Markdown, JSON, HTML, CSV, XML… not an ontology.</td></tr>
+      <tr><td><code>created_at</code></td><td><span class="pill req">required</span></td><td>When the system <i>learned</i> it.</td></tr>
+      <tr><td><code>valid_from</code> / <code>valid_until</code></td><td><span class="pill opt">optional</span></td><td>When it's <i>true</i>. <code>valid_until</code> may be in the future.</td></tr>
+      <tr><td><code>provenance</code></td><td><span class="pill aud">audit</span></td><td>Everyone and everything that contributed.</td></tr>
+      <tr><td><code>version</code> · <code>checksum</code></td><td><span class="pill aud">audit</span></td><td>Opaque version + declared comparator; integrity hash.</td></tr>
+      <tr><td><code>scope</code></td><td><span class="pill acl">ACL</span></td><td>Tags access policy attaches to. Set by the system, never the agent.</td></tr>
+      <tr><td><code>path</code> · <code>title</code> · <code>tags</code> · <code>stub</code></td><td><span class="pill opt">optional</span></td><td>Folder structure is progressive-disclosure information.</td></tr>
+      <tr><td><code>evidence</code> · <code>links</code></td><td><span class="pill opt">optional</span></td><td>Why to believe it · how it relates to other memories.</td></tr>
+      <tr><td><i>anything else</i></td><td><span class="pill ok">preserved</span></td><td>Unknown fields MUST survive export.</td></tr>
+    </table>
+  </div>
+  <aside class="notes">The two-time-axis distinction is the one people miss: created_at = when the system recorded it; valid_from = when it became true in the world. "Status updates move to Friday" might be recorded Sep 15 but valid from Sep 15 or retroactively. Tier assignments are editors' proposals, except version and updated_at which were read back on Oct 14. The unknown-fields rule is what lets vendors innovate without breaking the round trip.</aside>
+</section>
+
+<!-- 7 ─────────────────────────────────────────── -->
+<section class="slide" data-title="Global identity">
+  <div class="eyebrow">06 · Identity · §8.1</div>
+  <h2>Two people each export a <code style="font-size:.85em">MEMORY.md</code>. Which one is which?</h2>
+  <div class="grid g2" style="gap:30px;align-items:start">
+    <div class="card"><h3>manifest.json</h3><pre>{
+  <span class="k">"protocol_version"</span>: <span class="s">"0.2"</span>,
+  <span class="k">"profiles"</span>: [<span class="s">"minimal"</span>],
+  <span class="k">"origin"</span>: <span class="s">"store:6f1c2a9e-…-3d8e5a7b0c42"</span>,
+  <span class="k">"exported_at"</span>: <span class="s">"2026-10-20T09:00:00Z"</span>,
+  <span class="k">"selection"</span>: <span class="s">"snapshot"</span>,
+  <span class="k">"intent"</span>: <span class="s">"copy"</span>,
+  <span class="k">"media_types"</span>: [<span class="s">"text/markdown"</span>, …]
+}</pre></div>
+    <div style="display:flex;flex-direction:column;gap:16px">
+      <div class="card"><h3><code>origin</code> + <code>identifier</code> = the global key</h3><p class="small">Same idea as CloudEvents' <code>source</code> + <code>id</code>. <code>origin</code> is generated once per store, so colliding filenames stop colliding.</p></div>
+      <div class="card"><h3><code>exported_at</code> orders exports</h3><p class="small">It's how a receiver proves an archive predates a forget — the anti-resurrection demo in a few slides depends on it.</p></div>
+      <div class="card"><h3><code>selection</code> + <code>intent</code></h3><p class="small">Snapshot, selection, or full history · copy, move, or federation. <b>Absence from a partial export MUST NOT be read as deletion.</b></p></div>
+    </div>
+  </div>
+  <aside class="notes">Open issue I-8: on import, does the receiver keep the origin identifier or mint its own with a recorded mapping? Either way the origin key survives because it's in the manifest. "move" means the source deletes only after a durable, conforming import on the other side.</aside>
+</section>
+
+<!-- 8 LIVE ─────────────────────────────────────── -->
+<section class="slide" data-title="LIVE: one export, five tools" id="live">
+  <div class="eyebrow">07 · Live · the power of a portable format</div>
+  <h2 style="margin-bottom:16px">One export. Five tools. Zero pairwise converters.</h2>
+  <div class="live">
+    <div class="toolbar">
+      <button data-view="files" aria-pressed="true">Markdown folder</button>
+      <button data-view="graph" aria-pressed="false">Knowledge graph</button>
+      <button data-view="search" aria-pressed="false">Search index</button>
+      <button data-view="agent" aria-pressed="false">Agent context</button>
+      <button data-view="audit" aria-pressed="false">Auditor</button>
+      <label class="drop" for="file-in">Drop or choose your export</label>
+      <input id="file-in" type="file" multiple accept=".json,.md,.markdown,.txt" hidden>
+      <button id="download">Export ⤓</button>
+      <button id="reset" title="Reload the sample collection">Reset</button>
+      <span class="src" id="src-label"></span>
+    </div>
+    <div class="pane"><div class="inner" id="view"></div></div>
+  </div>
+  <aside class="notes">Walk all five tabs on the same 9 records. Markdown folder: Packer's loading profile — root files load at start, deeper ones are deferred. Graph: links become edges; evidence pointing outside the store is drawn hollow (dangling, kept, not dropped). Search: type "friday", toggle "current only" — valid_until and supersession filter results (§6.3). Agent context: the runtime projection drops checksum, scope, audit fields — show the size difference. Auditor: computes the profiles this export can actually claim and re-hashes checksums in the browser. Then invite someone to AirDrop their MEMORY.md/AGENTS.md — drop it; it becomes minimal-profile records instantly, and the auditor tells them exactly what's missing for audit. Export ⤓ writes a single JSON with manifest + memories.</aside>
+</section>
+
+<!-- 9 ─────────────────────────────────────────── -->
+<section class="slide" data-title="Interchange vs runtime">
+  <div class="eyebrow">08 · Two representations · §7</div>
+  <h2>The agent should see less than the exporter writes.</h2>
+  <div class="grid g2" style="gap:26px;align-items:start">
+    <div class="card"><h3>Interchange <span class="small" id="ir-size"></span></h3><pre id="ir-full" style="font-size:12.5px;max-height:560px;overflow:auto"></pre></div>
+    <div class="card"><h3>Runtime projection <span class="small" id="rt-size"></span></h3><pre id="ir-rt" style="font-size:14px"></pre>
+      <p class="small" style="margin-top:16px">Dropped for the agent: <span id="ir-dropped"></span>. Metadata the agent doesn't need makes it perform worse — and <code>scope</code> would leak how the store is organized. Access control is enforced by the server using interchange fields.</p></div>
+  </div>
+  <aside class="notes">Interchange is a superset of runtime [agreed]. Which fields reach the agent is each memory system's choice; the table in §7.2 is guidance. Note the projection keeps only the instructing human and authoring agent — the approver and the LLM judge stay in interchange. This is computed from the same record as the live slide; edit the record there and this updates.</aside>
+</section>
+
+<!-- 10 ─────────────────────────────────────────── -->
+<section class="slide" data-title="Provenance">
+  <div class="eyebrow">09 · Provenance &amp; accuracy · §4</div>
+  <h2>Provenance is a list of contributors — not a grade.</h2>
+  <div class="grid" style="grid-template-columns:1.1fr 1fr;gap:30px;align-items:start">
+    <div class="card"><pre id="prov-chain" style="font-size:15px;line-height:1.5"></pre></div>
+    <div style="display:flex;flex-direction:column;gap:14px">
+      <div class="card"><h3>A person asked, an agent wrote, a person approved</h3><p class="small">A plain list records that without forcing one "human / AI" label on the result. Maintenance agents (forget, consolidation) are writers too and MUST appear.</p></div>
+      <div class="card"><h3>No standard confidence score <span class="status">[editors' proposal · I-20]</span></h3><p class="small">A score can't move between systems unless the algorithm moves too, and self-reinforcing loops make systems confidently wrong. Instead: <b>who checked it</b> is provenance (<code>verified</code>, <code>corrected</code>, <code>contradicted</code>); <b>what the check rests on</b> is evidence. Receivers compute their own confidence.</p></div>
+      <div class="card"><h3>Accountable human, only where it matters</h3><p class="small">The audit profile needs one <code>kind: human</code> per memory. For a nightly consolidator, that can be the operator who runs it. A store that can't name one is still conforming — it just can't claim audit.</p></div>
+    </div>
+  </div>
+  <aside class="notes">"Vouching" came from the Oct 14 meeting: rather than "0.87 confident", say who vouched and on what basis. Cognee's PR #16 proposes an accuracy field — that's a live disagreement and one of the issues for the room. Also §4.5: v0.1 allowed heuristic provenance; v0.2 says leave it out rather than guess, because a receiver can't tell a guess from a fact.</aside>
+</section>
+
+<!-- 11 LIVE ─────────────────────────────────────── -->
+<section class="slide" data-title="LIVE: import receipts">
+  <div class="eyebrow">10 · Live · receipts · §8.4</div>
+  <h2 style="margin-bottom:16px">Import into three stores. Trust the receipt, not the progress bar.</h2>
+  <div class="toolbar" style="margin-bottom:14px">
+    <button data-imp="conforming" class="primary">Conforming store</button>
+    <button data-imp="typical">Typical "title + body" store</button>
+    <button data-imp="optimistic">Store that reports from its input</button>
+    <span class="small" style="margin-left:12px">Runs on whatever collection is loaded — including yours.</span>
+  </div>
+  <div class="grid" style="grid-template-columns:330px 1fr;gap:22px;flex:1;min-height:0">
+    <div class="card" id="rc-summary"></div>
+    <div class="pane"><div class="inner receipt" id="rc-rows"></div></div>
+  </div>
+  <aside class="notes">Conforming: everything accepted, unknown x_ fields kept. Typical: mints new IDs without a mapping, keeps title and body — the receipt lists every dropped field, so the loss is visible before anyone relies on it. Optimistic: reproduces the 208→0 bug: the report says "applied" from the input while the store kept nothing. The rule: receipts are computed from what was persisted. Retries MUST NOT duplicate memories.</aside>
+</section>
+
+<!-- 12 LIVE ─────────────────────────────────────── -->
+<section class="slide" data-title="LIVE: forget">
+  <div class="eyebrow">11 · Live · forget &amp; anti-resurrection · §6.5</div>
+  <h2 style="margin-bottom:16px">Forget something. Then try to bring it back from an old backup.</h2>
+  <div class="grid" style="grid-template-columns:1fr 1fr;gap:24px;flex:1;min-height:0">
+    <div class="pane"><div class="inner" id="fg-list"></div></div>
+    <div style="display:flex;flex-direction:column;gap:14px;min-height:0">
+      <div class="card"><h3>Tombstones <span class="small">(travel with exports, carry no content)</span></h3><pre id="fg-tomb" style="font-size:13px;max-height:220px;overflow:auto"></pre></div>
+      <div class="card">
+        <h3>Re-import the archive exported at <code id="fg-archive"></code></h3>
+        <div class="toolbar"><button id="fg-naive">…into a store without tombstones</button><button id="fg-aware" class="primary">…into a tombstone-aware store</button></div>
+        <p id="fg-result" style="margin-top:14px;font:400 19px/1.45 var(--serif)"></p>
+      </div>
+    </div>
+  </div>
+  <aside class="notes">Forget a memory or two (try the Maya ownership one). The tombstone records who, when, why — and no content. Re-import the pre-forget archive into a naive store: resurrected. Into a tombstone-aware store: blocked, because origin+identifier matches and the archive's exported_at predates the forget. Raise I-7: editors propose this belongs in the audit profile, not core. Is that right? Wes's point from Oct 14: some deployments need immediate removal (classified data stored by mistake) regardless of retention rules.</aside>
+</section>
+
+<!-- 13 ─────────────────────────────────────────── -->
+<section class="slide" data-title="Dangling refs & trust">
+  <div class="eyebrow">12 · The messy edges · §8.5, §8.7</div>
+  <h2>References break and provenance can be laundered. Plan for both.</h2>
+  <div class="grid g2" style="gap:30px">
+    <div class="card" style="border-top:5px solid var(--warn)">
+      <h3>Dangling references — hold, mark, don't fail</h3>
+      <p style="font:400 20px/1.55 var(--serif)">A link or evidence ref may point at a transcript that didn't travel, a deleted memory, a system of record, or something outside the reader's scope.</p>
+      <ul style="font-size:18px;line-height:1.6;margin:14px 0 0 0;padding-left:22px">
+        <li>A system MUST keep them and mark them dangling.</li>
+        <li>An import MUST NOT fail because of one.</li>
+        <li>It MAY resolve them later — even by asking a person.</li>
+      </ul>
+      <p class="small" style="margin-top:12px">Our sample: <b id="dg-count">0</b> dangling refs, all retained. In the sample, the rate-limit memory links to the provider's docs instead of copying a number that will go stale.</p>
+    </div>
+    <div class="card" style="border-top:5px solid var(--lose)">
+      <h3>Trust on import — a claim, not a fact <span class="status">[open · I-22]</span></h3>
+      <p style="font:400 20px/1.55 var(--serif)">You can't verify provenance recorded in a system you don't control. An imported chain is a <b>claim made by the exporting origin</b>.</p>
+      <ul style="font-size:18px;line-height:1.6;margin:14px 0 0 0;padding-left:22px">
+        <li><code>checksum</code> + history check <b>integrity</b>, not truth.</li>
+        <li>Receivers MAY review or sanitize before agents rely on imports.</li>
+        <li>Credentials are not memory and MUST NOT be exported.</li>
+      </ul>
+      <p class="small" style="margin-top:12px">Memory import is a prompt-injection surface. Third-party chains of trust are out of scope — for now.</p>
+    </div>
+  </div>
+  <aside class="notes">Gabe (IBM) proposed the dangling-reference rules on Oct 14. The scope point matters: a reference that resolves for one person dangles for another, so dangling is a per-reader state. On trust: this is where security folks in the room should push. Is "receivers MAY sanitize" enough? Should the manifest be signed? PR #17 has a threat model draft.</aside>
+</section>
+
+<!-- 14 ─────────────────────────────────────────── -->
+<section class="slide" data-title="Runtime & profiles">
+  <div class="eyebrow">13 · Runtime · conformance · §9–10</div>
+  <h2>Standardize what crosses the boundary — not how recall works.</h2>
+  <div class="grid g3" style="margin-bottom:26px">
+    <div class="card"><h3>Files</h3><p class="small">The agent reads memory files with shell or file tools.</p></div>
+    <div class="card"><h3>Tools</h3><p class="small">Explicit remember / recall tools from a memory server. MCP proposed as the binding — <b>not agreed</b> (I-10).</p></div>
+    <div class="card"><h3>Hooks</h3><p class="small">A supervisor decorates the session and decides what to store, without the agent knowing.</p></div>
+  </div>
+  <p class="lede" style="font-size:21px;margin-bottom:16px">The protocol MUST NOT fix a recall signature. It defines what recall <i>returns</i>: memory objects in the runtime representation. Claim only the profile you implement:</p>
+  <div class="ladder">
+    <div class="rung" style="min-height:150px"><h3>Minimal</h3><p class="small">3 required fields + body; unknown fields preserved. A folder of markdown gets here.</p></div>
+    <div class="rung" style="min-height:180px"><h3>Markdown loading</h3><p class="small">Root <code>MEMORY.md</code>, deeper files deferred, selective reads. Declares any fields it drops.</p></div>
+    <div class="rung" style="min-height:210px"><h3>Federation</h3><p class="small">Upload / search / read / delete + a capability endpoint. Read memory where it lives.</p></div>
+    <div class="rung" style="min-height:240px"><h3>Audit</h3><p class="small">Provenance with an accountable human, checksum + version, immutable history, evidence on derived memories, tombstones.</p></div>
+  </div>
+  <aside class="notes">Recall not standardized is [agreed] — implementations compete on retrieval. Federation binding is the AIDP/FMP endpoint set; the FMP demo in the repo is a Claude Code plugin plus two memory servers with different permission models. Under the thin-core proposal (I-21), each profile would become a named set of semantic conventions.</aside>
+</section>
+
+<!-- 15 ─────────────────────────────────────────── -->
+<section class="slide" data-title="It already runs">
+  <div class="eyebrow">14 · Proof</div>
+  <h2>The export in this deck runs through code nobody wrote for it.</h2>
+  <div class="grid g2" style="gap:30px;align-items:start">
+    <div class="card"><pre style="font-size:14.5px"><span style="color:var(--muted)"># this deck's sample/ folder, unmodified, through the</span>
+<span style="color:var(--muted)"># repo's independent omp_convert prototype SDK</span>
+$ python3 -m omp_convert omp-to-graph sample g.json
+$ python3 -m omp_convert graph-to-omp g.json back
+<span class="kept">9 records · 0 fields changed</span>
+
+$ python3 -m omp_convert omp-to-wiki sample wiki
+$ python3 -m omp_convert wiki-to-omp wiki back2
+<span class="kept">9 records · 1 field changed:</span>
+<span class="n">  MEMORY.md gained a path — the wiki needed a filename</span></pre>
+      <p class="small" style="margin-top:12px">Unknown <code>x_editor_rule_glob</code>, nested provenance, a JSON body, future <code>valid_until</code>: all survived both trips.</p></div>
+    <div style="display:flex;flex-direction:column;gap:12px">
+      <div class="card"><h3>Seven sources distilled into one draft</h3><p class="small">Scoping note (Strauss &amp; Rosenblat) · Letta (Packer v0.2) · IBM v0.1 · AIDP / FMP · Cognee v0.1 · Context Nest v0.1 · AMS Card (Mila + Mozilla). Block/goose's <code>me.md</code> sits alongside as a user-sovereignty draft.</p></div>
+      <div class="card"><h3>Prototypes in the repo</h3><p class="small"><b>omp_convert</b> — cloud → wiki → graph → wiki, 7/7 fidelity checks, 0 model calls · <b>exchange demo</b> — embeddings search, image bodies, three-way merge of exports · <b>FMP demo</b> — Claude Code plugin + two federated servers · <b>ACP memory server</b> — indexes sessions across 12 harnesses.</p></div>
+      <div class="card"><h3>Status, honestly</h3><p class="small">v0.2 is an <b>editors' draft</b> (PR #13). Every MUST is proposed, not adopted. 20 issues still open. That's why we're here.</p></div>
+    </div>
+  </div>
+  <aside class="notes">The one-field change is the honest kind of loss: the record had no path, a wiki can't have a file without a name, so the adapter assigned one. Under the markdown loading profile that projection should declare the loss (§10.2). This is the strongest argument for the format: two codebases, written separately, agree on 9 records without a shared library.</aside>
+</section>
+
+<!-- 16 ─────────────────────────────────────────── -->
+<section class="slide" data-title="Fights for this room">
+  <div class="eyebrow">15 · Discussion · vote with the buttons, then argue</div>
+  <h2 style="margin-bottom:20px">Six open issues this room can actually move.</h2>
+  <div class="grid g3" id="issues" style="flex:1"></div>
+  <aside class="notes">Take a quick show of hands (or click), pick the top two, and spend the rest of the session there. Record outcomes in the working-group thread with "FOO 2026" so they're attributable. If the room is mostly builders, go to I-8 and I-17; if mostly policy/security, I-7 and I-22.</aside>
+</section>
+
+<!-- 17 ─────────────────────────────────────────── -->
+<section class="slide title-slide" data-title="The ask">
+  <div class="eyebrow" style="color:#ff9a72">16 · The ask</div>
+  <h2 style="color:#fff;font-size:64px">Write one adapter. Round-trip one real collection. Tell us what broke.</h2>
+  <div class="grid g3" style="margin-top:28px">
+    <div class="card" style="background:#26231f;border-color:#3d3830;color:#efe9dc"><h3 style="color:#ff9a72">This afternoon</h3><p style="font:400 19px/1.5 var(--serif)">Export your harness's memory to the minimal profile — three fields and a body. Drop it on this deck; the auditor tells you what's missing.</p></div>
+    <div class="card" style="background:#26231f;border-color:#3d3830;color:#efe9dc"><h3 style="color:#ff9a72">This month</h3><p style="font:400 19px/1.5 var(--serif)">Add import with a receipt. Send a field report like PR #12: what came back, what didn't, with numbers.</p></div>
+    <div class="card" style="background:#26231f;border-color:#3d3830;color:#efe9dc"><h3 style="color:#ff9a72">If you run a memory product</h3><p style="font:400 19px/1.5 var(--serif)">Review PR #13 and claim an issue. Seats are open in the exchange-and-runtime working group.</p></div>
+  </div>
+  <p style="margin-top:auto;font:500 20px/1.6 var(--mono);color:#d7d0c2">github.com/The-AI-Disclosures-Project/Open-Memory-Protocol · PR #13<br>ompi@aidisclosures.org · ai-disclosures.org/ompi</p>
+  <aside class="notes">End on a concrete, small ask. If someone dropped an export during the session, point at it: "you're one adapter away." Collect names on the index card for follow-up.</aside>
+</section>
+
+<!-- A1 ─────────────────────────────────────────── -->
+<section class="slide" data-title="Appendix: v0.2 changes">
+  <div class="eyebrow">Appendix A · what changed in v0.2 (Oct 14)</div>
+  <h2>If you read v0.1, here's the diff.</h2>
+  <div class="grid g2" style="gap:24px;font-size:18px;line-height:1.55">
+    <ul style="margin:0;padding-left:22px">
+      <li>"Header" → <b>metadata</b>; <code>type</code> → <b><code>media_type</code></b>.</li>
+      <li>Goals and non-goals up front: <b>transfer format, not storage</b>. Markdown not preferred.</li>
+      <li><code>version</code> is <b>audit-required</b>, not required; in-place stores are fine.</li>
+      <li><code>valid_until</code> replaces <code>invalidated_at</code> and may be in the future.</li>
+      <li><code>created_at</code> = learned · <code>valid_from</code> = became true.</li>
+    </ul>
+    <ul style="margin:0;padding-left:22px">
+      <li><code>provenance</code> optional outside audit; <b>missing = unknown</b>, never guessed.</li>
+      <li>Provenance <code>role</code> → <code>contribution</code>; <code>model</code> → <code>name</code>.</li>
+      <li>New: <code>stub</code>, <code>path</code> separate from <code>identifier</code>, manifest <code>origin</code> + <code>exported_at</code>.</li>
+      <li>New: dangling-reference rule (§8.5), trust on import (§8.7).</li>
+      <li>Accuracy via provenance + evidence (editors' proposal); thin core listed as open (I-21).</li>
+    </ul>
+  </div>
+  <aside class="notes">Reference slide for people who were on earlier calls.</aside>
+</section>
+
+<!-- A2 ─────────────────────────────────────────── -->
+<section class="slide" data-title="Appendix: run it yourself">
+  <div class="eyebrow">Appendix B · run it yourself</div>
+  <h2>Everything here is a file you can carry.</h2>
+  <div class="grid g2" style="gap:24px;align-items:start">
+    <div class="card"><h3>This deck</h3><pre>deck.html               <span style="color:var(--muted)"># self-contained, offline, no network calls</span>
+sample/manifest.json     <span style="color:var(--muted)"># the export it embeds</span>
+sample/memories.json
+sample/build_sample.py   <span style="color:var(--muted)"># regenerates sample + checksums</span>
+build.py                 <span style="color:var(--muted)"># inlines sample into deck.html</span></pre>
+      <p class="small" style="margin-top:12px">Drop accepts: a JSON array of records, <code>{manifest, memories}</code>, separate <code>manifest.json</code> + <code>memories.json</code>, or <code>.md</code> files (front matter optional).</p></div>
+    <div class="card"><h3>Checksum convention (demo choice)</h3><pre>sha256( JSON with sorted keys, no whitespace,
+        of the record minus "checksum" )</pre>
+      <p class="small" style="margin-top:12px">v0.2 says what a checksum covers, not how to canonicalize it. JCS (RFC 8785) is the obvious candidate — another issue for the group.</p></div>
+  </div>
+  <aside class="notes">If asked about canonicalization: our Python and JS agree on this sample because it avoids floats and exotic Unicode. A real spec should cite RFC 8785.</aside>
+</section>
+
+<div id="progress"></div>
+<div id="bar"><span id="b-title"></span><span class="spacer"></span><span>N notes · ← → · drop an export anywhere</span><span id="b-count"></span></div>
+</div></div>
+<div id="notes"><h4>Speaker notes</h4><div id="notes-body"></div></div>
+<div id="dropveil">Drop your memory export<br><span style="font:400 22px var(--sans)">JSON records, manifest + memories, or .md files</span></div>
+
+<script id="sample-manifest" type="application/json">/*MANIFEST*/</script>
+<script id="sample-memories" type="application/json">/*MEMORIES*/</script>
+<script>
+(() => {
+'use strict';
+const $ = (s, r = document) => r.querySelector(s);
+const $$ = (s, r = document) => [...r.querySelectorAll(s)];
+const esc = s => String(s).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const clone = v => JSON.parse(JSON.stringify(v));
+
+/* ── stage scaling & navigation ───────────────────── */
+const stage = $('#stage');
+function fit() { stage.style.transform = `scale(${Math.min(innerWidth / 1600, innerHeight / 900)})`; }
+addEventListener('resize', fit); fit();
+
+const slides = $$('.slide');
+let cur = 0;
+function show(i) {
+  cur = Math.max(0, Math.min(slides.length - 1, i));
+  slides.forEach((s, j) => s.classList.toggle('active', j === cur));
+  $('#b-title').textContent = slides[cur].dataset.title;
+  $('#b-count').textContent = `${String(cur + 1).padStart(2, '0')} / ${slides.length}`;
+  $('#progress').style.width = `${(cur + 1) / slides.length * 100}%`;
+  const n = $('aside.notes', slides[cur]);
+  $('#notes-body').textContent = n ? n.textContent.trim() : '';
+  try { history.replaceState(null, '', `#${cur + 1}`); } catch (_) {}
+  renderSlide();
+}
+addEventListener('keydown', e => {
+  if (e.metaKey || e.ctrlKey || e.altKey || e.target.closest?.('input,textarea')) return;
+  const go = { ArrowRight: cur + 1, PageDown: cur + 1, ' ': cur + 1, ArrowLeft: cur - 1, PageUp: cur - 1, Home: 0, End: slides.length - 1 }[e.key];
+  if (go !== undefined) { e.preventDefault(); show(go); }
+  else if (e.key === 'n' || e.key === 'N') $('#notes').classList.toggle('on');
+});
+
+/* ── the collection: one export, read by everything ── */
+const SAMPLE = { manifest: JSON.parse($('#sample-manifest').textContent), memories: JSON.parse($('#sample-memories').textContent) };
+let state, archive, tombstones;
+function load(manifest, memories, label) {
+  state = { manifest, memories, label };
+  // The "old backup" for the forget demo. It can't be dated after the moment it was taken.
+  archive = { manifest: clone(manifest), memories: clone(memories) };
+  const taken = new Date().toISOString();
+  if (!archive.manifest.exported_at || archive.manifest.exported_at > taken) archive.manifest.exported_at = taken;
+  tombstones = [];
+  receiptMode = null;
+  renderSlide();
+}
+
+const STANDARD = new Set(['identifier','path','title','media_type','stub','tags','scope','created_at','valid_from','valid_until','version','updated_at','checksum','provenance','evidence','links','status','body']);
+const RUNTIME_DROP = ['scope','checksum','status','version','updated_at','evidence','links','valid_from'];
+const unknownFields = r => Object.keys(r).filter(k => !STANDARD.has(k));
+const label = r => r.title || r.path || r.identifier;
+let asOfDate = null; // null = now; the search tab can move it
+const asOf = () => asOfDate || new Date();
+const isPast = r => r.valid_until && new Date(r.valid_until) < asOf();
+function supersededIds(mems) {
+  const s = new Set();
+  for (const r of mems) for (const l of r.links || []) if (l.rel === 'supersedes' && l.target !== r.identifier) s.add(l.target);
+  return s;
+}
+const isDerived = r => (r.evidence || []).some(e => e.relation === 'derived') || (r.links || []).some(l => l.rel === 'derived_from');
+
+function canonical(v) {
+  if (Array.isArray(v)) return '[' + v.map(canonical).join(',') + ']';
+  if (v && typeof v === 'object') return '{' + Object.keys(v).sort().map(k => JSON.stringify(k) + ':' + canonical(v[k])).join(',') + '}';
+  return JSON.stringify(v);
+}
+async function sha256(text) {
+  if (!crypto.subtle) return null;
+  const buf = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(text));
+  return 'sha256:' + [...new Uint8Array(buf)].map(b => b.toString(16).padStart(2, '0')).join('');
+}
+async function checksumOk(r) {
+  if (!r.checksum) return null;
+  const { checksum, ...rest } = r;
+  const got = await sha256(canonical(rest));
+  return got === null ? 'n/a' : got === checksum;
+}
+
+function runtime(r) {
+  const out = {};
+  for (const [k, v] of Object.entries(r)) {
+    if (RUNTIME_DROP.includes(k) || k === 'body' || k.startsWith('x_')) continue;
+    if (k === 'stub' && !v) continue;
+    if (k === 'provenance') { out.provenance = v.filter(p => ['instructed','authored'].includes(p.contribution)).map(p => ({ id: p.id, kind: p.kind, contribution: p.contribution })); continue; }
+    out[k] = v;
+  }
+  if (r.valid_until) out.valid_until = r.valid_until;
+  return out;
+}
+function yamlish(obj) {
+  const val = v => Array.isArray(v) ? (v.every(x => typeof x !== 'object') ? `[${v.join(', ')}]` : '\n' + v.map(x => `  - { ${Object.entries(x).map(([a, b]) => `${a}: ${b}`).join(', ')} }`).join('\n'))
+    : (v && typeof v === 'object') ? JSON.stringify(v) : String(v);
+  return Object.entries(obj).map(([k, v]) => `${k}: ${val(v)}`).join('\n');
+}
+const asMarkdown = r => `---\n${yamlish(runtime(r))}\n---\n\n${r.body}`;
+
+/* ── import: accept whatever people have ───────────── */
+function parseFrontMatter(text) {
+  const m = text.match(/^---\r?\n([\s\S]*?)\r?\n---\r?\n?([\s\S]*)$/);
+  if (!m) return [{}, text];
+  const meta = {};
+  for (const line of m[1].split(/\r?\n/)) {
+    const kv = line.match(/^([A-Za-z_][\w-]*):\s*(.*)$/);
+    if (!kv) continue;
+    let v = kv[2].trim();
+    if (/^\[.*\]$/.test(v)) v = v.slice(1, -1).split(',').map(s => s.trim()).filter(Boolean);
+    else if (v === 'true' || v === 'false') v = v === 'true';
+    else v = v.replace(/^["']|["']$/g, '');
+    if (v !== '') meta[kv[1]] = v;
+  }
+  return [meta, m[2]];
+}
+async function importFiles(files) {
+  let manifest = null, memories = [], notes = [];
+  for (const f of files) {
+    const text = await f.text();
+    if (/\.json$/i.test(f.name)) {
+      let data;
+      try { data = JSON.parse(text); } catch (e) { notes.push(`${f.name}: not valid JSON`); continue; }
+      if (Array.isArray(data)) memories.push(...data);
+      else if (data.memories) { memories.push(...data.memories); manifest = data.manifest || manifest; }
+      else if (data.protocol_version || data.origin) manifest = data;
+      else notes.push(`${f.name}: no records found`);
+    } else {
+      const [meta, body] = parseFrontMatter(text);
+      const r = { identifier: meta.identifier || f.webkitRelativePath || f.name, media_type: meta.media_type || 'text/markdown', created_at: meta.created_at || new Date(f.lastModified).toISOString(), ...meta, body };
+      if (!meta.created_at) notes.push(`${f.name}: created_at taken from file modification time`);
+      memories.push(r);
+    }
+  }
+  if (!memories.length) { alert('No memory records found.\n' + notes.join('\n')); return; }
+  manifest = manifest || { protocol_version: '0.2', profiles: ['minimal'], origin: 'store:' + (crypto.randomUUID ? crypto.randomUUID() : Date.now()), exported_at: new Date().toISOString(), selection: 'snapshot', intent: 'copy', media_types: [...new Set(memories.map(m => m.media_type))] };
+  load(manifest, memories, `${files.length} file(s) you dropped · ${memories.length} records` + (notes.length ? ` · ${notes.length} note(s)` : ''));
+  if (notes.length) console.info(notes.join('\n'));
+  show(slides.indexOf($('#live')));
+}
+$('#file-in').addEventListener('change', e => e.target.files.length && importFiles([...e.target.files]));
+let dragDepth = 0;
+addEventListener('dragenter', e => { e.preventDefault(); dragDepth++; $('#dropveil').classList.add('on'); });
+addEventListener('dragleave', () => { if (--dragDepth <= 0) { dragDepth = 0; $('#dropveil').classList.remove('on'); } });
+addEventListener('dragover', e => e.preventDefault());
+addEventListener('drop', e => { e.preventDefault(); dragDepth = 0; $('#dropveil').classList.remove('on'); if (e.dataTransfer.files.length) importFiles([...e.dataTransfer.files]); });
+$('#reset').addEventListener('click', () => load(clone(SAMPLE.manifest), clone(SAMPLE.memories), 'sample export · 9 records · one origin'));
+$('#download').addEventListener('click', () => {
+  const manifest = { ...state.manifest, exported_at: new Date().toISOString() };
+  const blob = new Blob([JSON.stringify({ manifest, memories: state.memories, tombstones }, null, 2)], { type: 'application/json' });
+  const a = Object.assign(document.createElement('a'), { href: URL.createObjectURL(blob), download: 'omp-export.json' });
+  a.click(); setTimeout(() => URL.revokeObjectURL(a.href), 1000);
+});
+
+/* ── slide renderers ───────────────────────────────── */
+const renderers = {};
+function renderSlide() { const t = slides[cur].dataset.title; renderers[t] && renderers[t](); }
+
+// N×M
+function ring(svg, n, hub) {
+  const cx = 200, cy = 190, R = 160, pts = Array.from({ length: n }, (_, i) => [cx + R * Math.cos(2 * Math.PI * i / n - Math.PI / 2), cy + R * Math.sin(2 * Math.PI * i / n - Math.PI / 2)]);
+  let s = '';
+  if (hub) pts.forEach(([x, y]) => s += `<line x1="${cx}" y1="${cy}" x2="${x}" y2="${y}" stroke="#1f7a5a" stroke-width="2"/>`);
+  else for (let i = 0; i < n; i++) for (let j = i + 1; j < n; j++) s += `<line x1="${pts[i][0]}" y1="${pts[i][1]}" x2="${pts[j][0]}" y2="${pts[j][1]}" stroke="#b3261e" stroke-opacity=".45" stroke-width="1.2"/>`;
+  pts.forEach(([x, y]) => s += `<circle cx="${x}" cy="${y}" r="9" fill="#1c1a17"/>`);
+  if (hub) s += `<rect x="${cx - 44}" y="${cy - 22}" width="88" height="44" rx="8" fill="#d9481c"/><text x="${cx}" y="${cy + 7}" text-anchor="middle" fill="#fff" font-family="ui-monospace,monospace" font-weight="700" font-size="20">OMP</text>`;
+  svg.innerHTML = s;
+}
+function nxm() {
+  const n = +$('#nxm-n').value;
+  $('#nxm-nv').textContent = n; $('#nxm-a').textContent = n * (n - 1); $('#nxm-b').textContent = 2 * n;
+  ring($('#nxm-pairs'), n, false); ring($('#nxm-hub'), n, true);
+}
+$('#nxm-n').addEventListener('input', nxm);
+renderers['N×M vs N+M'] = nxm;
+
+// Live: five tools
+let view = 'files', selected = null, query = 'friday', currentOnly = true;
+$$('[data-view]').forEach(b => b.addEventListener('click', () => { view = b.dataset.view; renderLive(); }));
+function renderLive() {
+  $$('[data-view]').forEach(b => b.setAttribute('aria-pressed', String(b.dataset.view === view)));
+  $('#src-label').textContent = state.label;
+  ({ files: viewFiles, graph: viewGraph, search: viewSearch, agent: viewAgent, audit: viewAudit })[view]();
+}
+renderers['LIVE: one export, five tools'] = renderLive;
+
+function filePath(r) { return r.path || r.identifier.replace(/^\/+/, ''); }
+function viewFiles() {
+  const mems = state.memories;
+  if (!selected || !mems.some(m => m.identifier === selected)) selected = mems[0].identifier;
+  const tree = {};
+  for (const r of mems) { const parts = filePath(r).split('/'); let node = tree; parts.slice(0, -1).forEach(p => node = node[p] = node[p] || {}); (node.__files = node.__files || []).push([parts.at(-1), r]); }
+  const draw = (node, depth) => Object.keys(node).filter(k => k !== '__files').sort().map(k => `<div class="dir" style="padding-left:${depth * 18}px">${esc(k)}/</div>` + draw(node[k], depth + 1)).join('')
+    + (node.__files || []).map(([name, r]) => `<div class="f${r.identifier === selected ? ' sel' : ''}" data-id="${esc(r.identifier)}" style="margin-left:${depth * 18}px">${esc(name)}<span class="tag ${depth === 0 ? 'load' : 'defer'}">${depth === 0 ? 'loaded' : 'deferred'}</span></div>`).join('');
+  const r = mems.find(m => m.identifier === selected);
+  $('#view').outerHTML = `<div class="inner" id="view" style="padding:0;display:flex"><div class="split" style="flex:1"><div class="tree">${draw(tree, 0)}<p class="small" style="margin-top:14px;font-family:var(--sans)">Markdown loading profile: root files load at session start; deeper files surface one level down and are read on demand.</p></div><div><div class="status" style="margin-bottom:8px">${esc(filePath(r))} · runtime projection · front matter + body</div><pre>${esc(asMarkdown(r))}</pre></div></div></div>`;
+  $$('#view .f').forEach(el => el.addEventListener('click', () => { selected = el.dataset.id; viewFiles(); }));
+}
+
+function viewGraph() {
+  const mems = state.memories, ids = new Set(mems.map(m => m.identifier));
+  const W = 1380, H = 520, cx = W / 2, cy = H / 2;
+  const nodes = mems.map((r, i) => ({ id: r.identifier, label: label(r), r, x: cx + 400 * Math.cos(2 * Math.PI * i / mems.length - Math.PI / 2), y: cy + 180 * Math.sin(2 * Math.PI * i / mems.length - Math.PI / 2) }));
+  const pos = Object.fromEntries(nodes.map(n => [n.id, n]));
+  const ext = [], edges = [];
+  for (const r of mems) {
+    for (const l of r.links || []) if (l.target !== r.identifier) edges.push({ a: r.identifier, b: l.target, rel: l.rel, dangling: !ids.has(l.target) });
+    for (const e of r.evidence || []) if (!ids.has(e.ref)) { ext.push({ from: r.identifier, ref: e.ref, relation: e.relation }); }
+  }
+  const perNode = {};
+  ext.forEach(e => { const p = pos[e.from], k = perNode[e.from] = (perNode[e.from] || 0) + 1, ang = Math.atan2((p.y - cy) * 2.6, p.x - cx) + (k - 1) * 0.5; e.x = p.x + 110 * Math.cos(ang); e.y = p.y + 70 * Math.sin(ang); });
+  let s = `<svg viewBox="0 0 ${W} ${H}" width="100%" height="100%"><defs><marker id="ar" viewBox="0 0 10 10" refX="10" refY="5" markerWidth="7" markerHeight="7" orient="auto"><path d="M0,0L10,5L0,10z" fill="#2a5db0"/></marker></defs>`;
+  for (const e of ext) { const p = pos[e.from]; s += `<line x1="${p.x}" y1="${p.y}" x2="${e.x}" y2="${e.y}" stroke="#9a6a00" stroke-dasharray="4 4"/><circle cx="${e.x}" cy="${e.y}" r="7" fill="#fff" stroke="#9a6a00" stroke-width="2"/><text x="${e.x + (e.x >= cx ? 11 : -11)}" y="${e.y + 5}" text-anchor="${e.x >= cx ? 'start' : 'end'}" fill="#9a6a00" font-size="12">${esc(e.ref.length > 26 ? '…' + e.ref.slice(-24) : e.ref)}</text>`; }
+  for (const e of edges) { const a = pos[e.a], b = pos[e.b]; if (!b) continue; const dx = b.x - a.x, dy = b.y - a.y, d = Math.hypot(dx, dy); s += `<line x1="${a.x}" y1="${a.y}" x2="${b.x - dx / d * 14}" y2="${b.y - dy / d * 14}" stroke="#2a5db0" stroke-width="2" marker-end="url(#ar)"/><text x="${(a.x + b.x) / 2}" y="${(a.y + b.y) / 2 - 6}" text-anchor="middle" fill="#2a5db0" font-size="11">${esc(e.rel)}</text>`; }
+  for (const n of nodes) { const past = isPast(n.r); s += `<circle cx="${n.x}" cy="${n.y}" r="12" fill="${past ? '#b3261e' : '#1c1a17'}"/><text x="${n.x}" y="${n.y + 28}" text-anchor="middle" fill="#1c1a17">${esc(n.label.length > 34 ? n.label.slice(0, 33) + '…' : n.label)}</text>`; }
+  s += '</svg>';
+  $('#view').outerHTML = `<div class="inner" id="view"><div class="status">${nodes.length} memory nodes · ${edges.length} typed edges from <code>links</code> · ${ext.length} evidence refs outside the store (dashed, kept as dangling)</div><div id="graph" style="height:520px">${s}</div></div>`;
+}
+
+function viewSearch() {
+  const sup = supersededIds(state.memories);
+  const terms = query.toLowerCase().split(/\W+/).filter(Boolean);
+  const scored = state.memories.map(r => {
+    const hay = [r.title, (r.tags || []).join(' ')].join(' ').toLowerCase(), body = String(r.body).toLowerCase();
+    let score = 0; for (const t of terms) { score += 3 * (hay.split(t).length - 1) + (body.split(t).length - 1); }
+    const excluded = currentOnly && (isPast(r) || sup.has(r.identifier)) ? (isPast(r) ? `past valid_until ${r.valid_until.slice(0, 10)}` : 'superseded') : '';
+    return { r, score, excluded };
+  }).filter(x => x.score > 0).sort((a, b) => b.score - a.score);
+  const hl = t => terms.length ? esc(t).replace(new RegExp(`(${terms.map(x => x.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')).join('|')})`, 'gi'), '<mark>$1</mark>') : esc(t);
+  $('#view').outerHTML = `<div class="inner" id="view"><div class="toolbar" style="margin-bottom:10px"><input type="text" id="q" value="${esc(query)}" style="width:420px" placeholder="search"> <label class="small"><input type="checkbox" id="cur" ${currentOnly ? 'checked' : ''}> current only (§6.3)</label> <label class="small">as of <input type="date" id="asof" value="${asOf().toISOString().slice(0, 10)}"></label><span class="small" style="margin-left:auto">lexical index built from <code>title</code>, <code>tags</code>, <code>body</code> — swap in embeddings; the records don't change</span></div>
+  ${scored.map(x => `<div class="hit" style="${x.excluded ? 'opacity:.4' : ''}"><div class="t">${hl(label(x.r))} ${x.excluded ? `<span class="pill bad">${esc(x.excluded)}</span>` : ''} ${x.r.stub ? '<span class="pill warn">stub · fetch full body</span>' : ''}</div><div>${hl(String(x.r.body).slice(0, 220))}</div><div class="meta">${esc(x.r.identifier)} · ${esc(x.r.media_type)} · score ${x.score}</div></div>`).join('') || '<p class="small">No hits.</p>'}</div>`;
+  const q = $('#q'); q.addEventListener('input', () => { query = q.value; const p = q.selectionStart; viewSearch(); const nq = $('#q'); nq.focus(); nq.setSelectionRange(p, p); });
+  $('#cur').addEventListener('change', e => { currentOnly = e.target.checked; viewSearch(); });
+  $('#asof').addEventListener('change', e => { asOfDate = e.target.value ? new Date(e.target.value + 'T12:00:00Z') : null; viewSearch(); });
+}
+
+function viewAgent() {
+  const sup = supersededIds(state.memories);
+  const live = state.memories.filter(r => !isPast(r) && !sup.has(r.identifier));
+  const full = JSON.stringify({ manifest: state.manifest, memories: state.memories }, null, 2);
+  const ctx = live.map(asMarkdown).join('\n\n');
+  const tok = s => Math.round(s.length / 4);
+  $('#view').outerHTML = `<div class="inner" id="view"><div class="ctx"><div><h3>What the agent sees</h3><p class="small" style="margin-bottom:10px">${live.length} current memories, runtime projection (§7.2). Stubs stay stubs until fetched.</p><pre style="font-size:13px;background:#faf7f0;border:1px solid var(--rule);border-radius:8px;padding:12px;max-height:520px;overflow:auto">${esc(ctx)}</pre></div>
+  <div><h3>Same records, two sizes</h3><p class="small">Rough token estimate (characters ÷ 4).</p>
+  <p style="margin:18px 0 6px;font:600 15px var(--mono)">Interchange export · ~${tok(full).toLocaleString()} tokens</p><div class="meter"><span style="width:100%"></span></div>
+  <p style="margin:18px 0 6px;font:600 15px var(--mono)">Agent context · ~${tok(ctx).toLocaleString()} tokens</p><div class="meter"><span style="width:${Math.round(100 * ctx.length / full.length)}%;background:var(--keep)"></span></div>
+  <div class="card" style="margin-top:22px"><h3>Kept out of context</h3><p class="small"><code>scope</code>, <code>checksum</code>, <code>version</code>, evidence and links, approvers and verifiers, unknown <code>x_</code> fields${state.memories.length - live.length ? `, and ${state.memories.length - live.length} memories that are past <code>valid_until</code> or superseded` : ''}. They stay in interchange, where the server uses them for access control and audit.</p></div></div></div></div>`;
+}
+
+async function viewAudit() {
+  const token = state;
+  const mems = state.memories;
+  const idCount = {}; mems.forEach(r => idCount[r.identifier] = (idCount[r.identifier] || 0) + 1);
+  const rows = await Promise.all(mems.map(async r => {
+    const minimal = typeof r.identifier === 'string' && r.media_type && r.created_at && typeof r.body === 'string' && idCount[r.identifier] === 1;
+    const human = (r.provenance || []).some(p => p.kind === 'human');
+    const ck = await checksumOk(r);
+    const derivedOk = !isDerived(r) || (r.evidence || []).length > 0;
+    const dangling = (r.evidence || []).filter(e => e.dangling).length + (r.links || []).filter(l => !mems.some(m => m.identifier === l.target)).length;
+    return { r, minimal, human, version: !!r.version, ck, derivedOk, dangling, unknown: unknownFields(r) };
+  }));
+  const allMin = rows.every(x => x.minimal), auditPass = rows.filter(x => x.minimal && x.human && x.version && x.ck === true && x.derivedOk);
+  const mark = (ok, yes = 'yes', no = 'no') => ok ? `<span class="pill ok">${yes}</span>` : `<span class="pill bad">${no}</span>`;
+  const unk = [...new Set(rows.flatMap(x => x.unknown))];
+  if (view !== 'audit' || state !== token) return;
+  $('#view').outerHTML = `<div class="inner" id="view"><div class="verdict"><span style="font:600 22px var(--serif)">This export can claim:</span> ${mark(allMin, 'minimal ✓', 'minimal ✗')} ${mark(auditPass.length === mems.length, 'audit ✓', `audit ✗ · ${auditPass.length}/${mems.length} records pass`)} <span class="small">Unknown fields preserved: ${unk.length ? unk.map(u => `<code>${esc(u)}</code>`).join(', ') : 'none'}</span></div>
+  <div class="audit-row h"><span>memory</span><span>minimal fields</span><span>accountable human</span><span>version</span><span>checksum re-hashed</span><span>derived → evidence</span></div>
+  ${rows.map(x => `<div class="audit-row"><span><b>${esc(label(x.r))}</b><br><span class="small mono">${esc(x.r.identifier)}${x.dangling ? ` · ${x.dangling} dangling ref(s) kept` : ''}${!x.r.provenance ? ' · author unknown' : ''}</span></span><span>${mark(x.minimal)}</span><span>${mark(x.human)}</span><span>${mark(x.version)}</span><span>${x.ck === null ? '<span class="pill bad">none</span>' : x.ck === 'n/a' ? '<span class="pill warn">no WebCrypto</span>' : mark(x.ck, 'matches', 'MISMATCH')}</span><span>${isDerived(x.r) ? mark(x.derivedOk) : '<span class="small">n/a</span>'}</span></div>`).join('')}
+  <p class="small" style="margin-top:12px">Checksums are recomputed here in your browser. Integrity, not truth: a matching hash says the record wasn't altered after the exporter hashed it — not that the exporter was right (§8.7).</p></div>`;
+}
+
+// Interchange vs runtime
+renderers['Interchange vs runtime'] = () => {
+  const r = state.memories.find(m => m.provenance && m.provenance.length > 2) || state.memories[0];
+  const full = JSON.stringify(r, null, 2), rt = asMarkdown(r);
+  $('#ir-full').textContent = full; $('#ir-rt').textContent = rt;
+  $('#ir-size').textContent = `· ${full.length} chars`; $('#rt-size').textContent = `· ${rt.length} chars`;
+  const kept = Object.keys(runtime(r)).concat('body');
+  $('#ir-dropped').innerHTML = Object.keys(r).filter(k => !kept.includes(k)).map(k => `<code>${esc(k)}</code>`).join(', ') + ((r.provenance || []).length > 2 ? ', approver and verifier entries' : '');
+};
+
+// Provenance
+renderers['Provenance'] = () => {
+  const r = state.memories.find(m => m.provenance && m.provenance.length > 2) || state.memories.find(m => m.provenance) || state.memories[0];
+  $('#prov-chain').innerHTML = `<span class="status">${esc(label(r))}</span>\n\n<span class="k">"provenance"</span>: ` + esc('[\n' + (r.provenance || []).map(p => '  ' + JSON.stringify(p)).join(',\n') + '\n]').replace(/&quot;(human|agent|system)&quot;/g, '<b style="color:var(--accent)">&quot;$1&quot;</b>')
+    + (r.evidence ? `,\n<span class="k">"evidence"</span>: ` + esc('[\n' + r.evidence.map(e => '  ' + JSON.stringify(e)).join(',\n') + '\n]') : '');
+};
+
+// Receipts
+let receiptMode = null;
+$$('[data-imp]').forEach(b => b.addEventListener('click', () => { receiptMode = b.dataset.imp; renderReceipt(); }));
+function importInto(mode, mems) {
+  const rows = [], persisted = [];
+  const seen = new Set();
+  for (const r of mems) {
+    const key = state.manifest.origin + '\u0000' + r.identifier;
+    if (seen.has(key)) { rows.push({ id: r.identifier, status: 'rejected', why: 'duplicate origin+identifier in one export' }); continue; }
+    seen.add(key);
+    if (typeof r.body !== 'string' || !r.identifier || !r.media_type || !r.created_at) { rows.push({ id: r.identifier || '(none)', status: 'rejected', why: 'missing a required field or a string body' }); continue; }
+    if (mode === 'conforming') { persisted.push(clone(r)); rows.push({ id: r.identifier, status: 'accepted', why: unknownFields(r).length ? `kept unknown: ${unknownFields(r).join(', ')}` : 'all fields kept' }); }
+    else if (mode === 'typical') {
+      const kept = { id: 'local-' + (persisted.length + 1), title: r.title || '', body: r.body };
+      persisted.push(kept);
+      const lost = Object.keys(r).filter(k => !['title', 'body'].includes(k));
+      rows.push({ id: r.identifier, status: 'transformed', why: `→ ${kept.id} (no mapping kept) · dropped ${lost.join(', ')}` });
+    } else rows.push({ id: r.identifier, status: 'applied', why: 'counted from input' });
+  }
+  return { rows, persisted };
+}
+function renderReceipt() {
+  if (!receiptMode) { $('#rc-summary').innerHTML = '<h3>Pick a store</h3><p class="small">Each import produces a receipt: per memory, accepted / transformed / omitted / rejected, with reasons and any identifier mappings.</p>'; $('#rc-rows').innerHTML = ''; return; }
+  const { rows, persisted } = importInto(receiptMode, state.memories);
+  const handed = state.memories.length;
+  const c = s => rows.filter(r => r.status === s).length;
+  const lostFields = receiptMode === 'typical' ? state.memories.reduce((n, r) => n + Object.keys(r).filter(k => !['title', 'body'].includes(k)).length, 0) : 0;
+  const warn = receiptMode === 'optimistic'
+    ? `<div class="card" style="background:var(--lose-bg);border-color:var(--lose);margin-top:16px"><b style="color:var(--lose)">Report says ${c('applied')} applied. Store holds ${persisted.length}.</b><p class="small" style="margin-top:6px">This is the 208 → 0 failure from PR #12. A receipt must be computed from what was persisted, and any gap between handed-over and persisted is a warning.</p></div>`
+    : receiptMode === 'typical' ? `<div class="card" style="background:var(--warn-bg);border-color:var(--warn);margin-top:16px"><b style="color:var(--warn)">${lostFields} field values dropped, ${handed} identities remapped without a mapping.</b><p class="small" style="margin-top:6px">Lossy — but the receipt makes it visible before an agent relies on it. Re-importing this export would create duplicates: retries MUST NOT.</p></div>`
+    : `<div class="card" style="background:var(--keep-bg);border-color:var(--keep);margin-top:16px"><b style="color:var(--keep)">Round trip clean.</b><p class="small" style="margin-top:6px">Same origin + identifier, unknown fields kept. Re-import is idempotent.</p></div>`;
+  $('#rc-summary').innerHTML = `<h3>${({ conforming: 'Conforming store', typical: 'Typical store', optimistic: 'Reports from input' })[receiptMode]}</h3><div class="counts"><span><b>${handed}</b>handed over</span><span><b style="color:${persisted.length === handed ? 'var(--keep)' : 'var(--lose)'}">${persisted.length}</b>persisted</span></div><div class="counts" style="margin-top:14px"><span><b>${c('transformed')}</b>transformed</span><span><b>${c('rejected')}</b>rejected</span></div>${warn}`;
+  const color = { accepted: 'ok', transformed: 'warn', rejected: 'bad', applied: 'warn' };
+  $('#rc-rows').innerHTML = `<div class="row" style="font-weight:600;color:var(--muted)"><span>identifier</span><span>status</span><span>reason / mapping</span></div>` + rows.map(r => `<div class="row"><span>${esc(r.id)}</span><span><span class="pill ${color[r.status]}">${r.status}</span></span><span>${esc(r.why)}</span></div>`).join('');
+  $$('[data-imp]').forEach(b => b.classList.toggle('primary', b.dataset.imp === receiptMode));
+}
+renderers['LIVE: import receipts'] = renderReceipt;
+
+// Forget
+function renderForget() {
+  const gone = new Set(tombstones.map(t => t.identifier));
+  $('#fg-archive').textContent = archive.manifest.exported_at;
+  $('#fg-list').innerHTML = `<h3>Current store (${state.memories.length} memories)</h3>` + archive.memories.map(r => `<div class="mem-line${gone.has(r.identifier) ? ' gone' : ''}"><span><b>${esc(label(r))}</b><br><span class="id">${esc(r.identifier)}</span></span>${gone.has(r.identifier) ? '<span class="pill bad">forgotten</span>' : `<button data-forget="${esc(r.identifier)}">Forget</button>`}</div>`).join('');
+  $('#fg-tomb').textContent = tombstones.length ? JSON.stringify(tombstones, null, 2) : '(none yet — forget something on the left)';
+  $$('[data-forget]').forEach(b => b.addEventListener('click', () => {
+    const id = b.dataset.forget;
+    state.memories = state.memories.filter(m => m.identifier !== id);
+    tombstones.push({ origin: state.manifest.origin, identifier: id, forgotten_at: new Date().toISOString(), by: { id: 'user:jordan', kind: 'human' }, reason: 'user erasure request' });
+    $('#fg-result').textContent = ''; renderForget();
+  }));
+}
+function reimport(aware) {
+  const live = new Set(state.memories.map(m => m.identifier));
+  let back = 0, blocked = 0;
+  for (const r of archive.memories) {
+    if (live.has(r.identifier)) continue;
+    const t = tombstones.find(t => t.origin === archive.manifest.origin && t.identifier === r.identifier);
+    if (aware && t && new Date(archive.manifest.exported_at) < new Date(t.forgotten_at)) { blocked++; continue; }
+    state.memories.push(clone(r)); back++;
+  }
+  if (!aware && back) tombstones = tombstones.filter(t => !archive.memories.some(r => r.identifier === t.identifier));
+  $('#fg-result').innerHTML = !tombstones.length && !back && !blocked ? 'Nothing forgotten yet — forget a memory first.'
+    : aware ? `<b style="color:var(--keep)">${blocked} blocked.</b> Each tombstone matched <code>origin + identifier</code>, and the archive's <code>exported_at</code> predates the forget. ${back ? back + ' other record(s) restored.' : ''}`
+    : `<b style="color:var(--lose)">${back} resurrected.</b> Without tombstones the old archive silently brings forgotten content back. (Tombstones reset — forget again to retry.)`;
+  renderForget();
+}
+$('#fg-naive').addEventListener('click', () => reimport(false));
+$('#fg-aware').addEventListener('click', () => reimport(true));
+renderers['LIVE: forget'] = renderForget;
+
+renderers['Dangling refs & trust'] = () => {
+  const ids = new Set(state.memories.map(m => m.identifier));
+  $('#dg-count').textContent = state.memories.reduce((n, r) => n + (r.evidence || []).filter(e => e.dangling).length + (r.links || []).filter(l => !ids.has(l.target)).length, 0);
+};
+
+// Issues
+const ISSUES = [
+  ['I-2', 'What is one memory?', 'The smallest true-or-false claim (Cognee) · a document with a title and author (Context Nest, Packer) · a knowledge object with its own version chain.'],
+  ['I-20', 'Should accuracy travel as a number?', 'Editors: no — vouching via provenance + evidence; receivers score. Cognee PR #16: an accuracy field. Middle: confidence per evidence entry, with who produced it.'],
+  ['I-21', 'Thin core + semantic conventions?', 'OpenTelemetry-style: identifier, media_type, body, attributes{}. Everything else versioned separately. Faster to adopt, or a way to never agree?'],
+  ['I-8', 'Identity on import', 'Keep the origin identifier, or mint a local one and record the mapping? Affects dedup, anti-resurrection, and move semantics.'],
+  ['I-7', 'Is forgetting core?', 'Editors propose tombstones + anti-resurrection live in the audit profile. But erasure requests hit individuals too.'],
+  ['I-22', 'Trust on import', 'Imported provenance is a claim. Signed manifests? Sanitization rules? Or leave it to receivers and accept the injection surface?'],
+];
+const votes = {};
+function renderIssues() {
+  $('#issues').innerHTML = ISSUES.map(([no, h, sides]) => `<div class="issue"><span class="no">${no}</span><span class="votes"><button data-v="${no}" aria-label="Vote for ${no}">+1</button><span>${votes[no] || 0}</span></span><h3>${h}</h3><p class="sides">${sides}</p></div>`).join('');
+  $$('[data-v]').forEach(b => b.addEventListener('click', () => { votes[b.dataset.v] = (votes[b.dataset.v] || 0) + 1; renderIssues(); }));
+}
+renderers['Fights for this room'] = renderIssues;
+
+load(clone(SAMPLE.manifest), clone(SAMPLE.memories), 'sample export · 9 records · one origin');
+const fromHash = () => { const h = parseInt(location.hash.slice(1), 10); show(Number.isFinite(h) ? h - 1 : 0); };
+addEventListener('hashchange', fromHash);
+fromHash();
+})();
+</script>
+</body>
+</html>
