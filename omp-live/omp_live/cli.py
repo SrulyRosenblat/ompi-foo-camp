@@ -180,6 +180,7 @@ def index_server(sync: Sync, port: int, agent=None, service=None):
         ("GET", "/api/trace"): trace_route,
         ("GET", "/api/memories"): memories,
         ("GET", "/api/export"): receipts,
+        ("GET", "/api/manifest"): lambda q, b: sync.export.manifest(),
         ("POST", "/api/resolve"): resolve,
         ("POST", "/api/forget"): forget,
     }, name="index", pages={"/trace": TRACE_HTML},

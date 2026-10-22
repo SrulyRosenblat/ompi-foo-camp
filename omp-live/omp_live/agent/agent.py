@@ -22,6 +22,7 @@ import json
 import os
 import subprocess
 import threading
+import time
 import urllib.error
 import urllib.request
 from pathlib import Path
@@ -50,11 +51,11 @@ TOOLS = [
      "parameters": {"type": "object", "properties": {"command": {"type": "string"}}, "required": ["command"]}},
 ]
 
-SYSTEM_PROMPT = """You are a coding agent. Your working directory is a team's memory folder: markdown files with YAML front matter, shared with other tools through the Open Memory Protocol. Everything you know about the team is in these files.
+SYSTEM_PROMPT = """You are Ilan's agent, a coding agent working for Ilan Strauss of the AI Disclosures Project. Your working directory is a memory folder: markdown files with YAML front matter, shared with other tools through the Open Memory Protocol. It holds notes restating public AI Disclosures Project material, including its Asimov's Addendum blog (each with a source URL in its attributes), and your own notes about Ilan under personal/ (read personal/communication.md before answering him); everything you know beyond the summary below is in these files.
 
 How memory works here:
 - MEMORY.md (below) is always in your context. Every other file is listed in the index below; read it with `read` before relying on it.
-- To remember something new, write a markdown file under agent/ (kebab-case name). Start it with front matter like this, then the body:
+- To remember something new, write a markdown file (kebab-case name) in the folder it belongs in: things about Ilan (his preferences, work, people, habits) go in personal/; notes about a topic go in the existing folder for that topic (see the index below for folders such as blog/, omp/, ompi/, people/, research/, project/, spec/). Create a new folder only when nothing fits. Start it with front matter like this, then the body:
   ---
   title: Short title
   tags: [fact]
@@ -67,11 +68,11 @@ How memory works here:
 - To forget something, delete its file (bash rm). Only when asked.
 - Answer from the files, say which file you relied on, and be brief: one or two sentences unless asked for more.
 
-About OMP and OMPI (answer questions about them from this, not from the memory files):
+About OMP and OMPI (a summary; for details, read the memory files and cite them):
 - The Open Memory Protocol (OMP) is an open, royalty-free format for portable agent memory. It lets what an agent remembers, who said it, and what was forgotten move between tools such as Claude Code, Codex, goose and Letta Code. Each tool implements one import and one export instead of a converter for every pair. It is a transfer format, not a storage format.
 - The Open Memory Protocol Initiative (OMPI) is the vendor-neutral, multi-stakeholder open-source ecosystem that develops OMP, hosted at the AI Disclosures Project and co-hosted with Mozilla and IBM. OMP is pre-1.0: the current working spec is the v0.2 editors' draft (PR #13), open for review, not an adopted standard.
 - A record has identifier, media_type, body and attributes, plus optional title, tags, path, links, provenance (a list of contributors), version and valid_until. Forgetting leaves a tombstone so a forgotten memory never comes back; conflicting edits are kept side by side for a person to resolve; every import leaves a receipt.
-- This folder is one of three systems (wiki, graph, search) kept in sync through an OMP export folder; your writes travel to the others that way. The memories here are fictional.
+- This folder is one of three systems (the file system, a knowledge graph and a search index) kept in sync through an OMP export folder; your writes travel to the others that way. The seeded notes come from public sources; don't add claims about real people that you weren't told.
 - Repository: https://github.com/The-AI-Disclosures-Project/Open-Memory-Protocol · Site: https://ai-disclosures.org/ompi
 """
 
@@ -95,12 +96,35 @@ class Agent:
         self.cwd = wiki.root.resolve()
         self.human = human
         self.model = os.environ.get("OMP_AGENT_MODEL", DEFAULT_MODEL)
-        self.transcript: list[dict] = []   # what the UI shows
-        self.messages: list[dict] = []     # API history
-        self.busy = False
+        # One conversation per browser page load; None is the default (tests, CLI).
+        self.sessions: dict = {None: {"transcript": [], "messages": [], "busy": False, "seen": time.time()}}
         self.tool_seq = 0
         self.last_tool: dict | None = None
         self._lock = threading.Lock()
+        self._turns = threading.Lock()  # turns share one folder, so they run one at a time
+
+    def session(self, sid: str | None = None) -> dict:
+        with self._lock:
+            s = self.sessions.get(sid)
+            if s is None:
+                stale = [k for k, v in self.sessions.items() if k is not None and not v["busy"] and time.time() - v["seen"] > 3600]
+                for k in stale:
+                    del self.sessions[k]
+                s = self.sessions[sid] = {"transcript": [], "messages": [], "busy": False, "seen": time.time()}
+            s["seen"] = time.time()
+            return s
+
+    @property
+    def transcript(self) -> list[dict]:
+        return self.sessions[None]["transcript"]
+
+    @property
+    def messages(self) -> list[dict]:
+        return self.sessions[None]["messages"]
+
+    @property
+    def busy(self) -> bool:
+        return any(s["busy"] for s in list(self.sessions.values()))
 
     # ---- the loading contract (§10.2) ------------------------------------------
     def context(self) -> dict:
@@ -184,7 +208,7 @@ class Agent:
         out = (r.stdout + (("\n" + r.stderr) if r.stderr else "")).strip()
         return (out or "(no output)")[:OUTPUT_LIMIT] + (f"\n[exit {r.returncode}]" if r.returncode else "")
 
-    def run_tool(self, name: str, args: dict, turn: int = 0) -> str:
+    def run_tool(self, name: str, args: dict, turn: int = 0, session: dict | None = None) -> str:
         fn = {"ls": self.t_ls, "read": self.t_read, "write": self.t_write, "edit": self.t_edit, "bash": self.t_bash}.get(name)
         if fn is None:
             return f"unknown tool {name}"
@@ -192,7 +216,7 @@ class Agent:
             result = fn(args)
         except Exception as e:  # noqa: BLE001
             result = f"error: {e}"
-        self.transcript.append({"role": "tool", "name": name, "args": args, "result": result})
+        (session or self.sessions[None])["transcript"].append({"role": "tool", "name": name, "args": args, "result": result})
         if name in ("write", "edit", "bash"):
             self.tool_seq += 1
             self.last_tool = {"seq": self.tool_seq, "name": name, "at": now_iso(),
@@ -200,40 +224,50 @@ class Agent:
         return result
 
     # ---- the turn ---------------------------------------------------------------
-    def chat(self, text: str) -> None:
+    def chat(self, text: str, sid: str | None = None) -> None:
+        s = self.session(sid)
         with self._lock:
-            if self.busy:
+            if s["busy"]:
                 return
-            self.busy = True
-        threading.Thread(target=self._turn, args=(text,), daemon=True).start()
+            s["busy"] = True
+        threading.Thread(target=self._turn, args=(text, s), daemon=True).start()
 
-    def _turn(self, text: str) -> None:
-        self.transcript.append({"role": "user", "text": text})
-        self.messages.append({"role": "user", "content": text})
+    def _turn(self, text: str, s: dict | None = None) -> None:
+        s = s or self.sessions[None]
+        transcript, messages = s["transcript"], s["messages"]
+        transcript.append({"role": "user", "text": text})
+        messages.append({"role": "user", "content": text})
         try:
-            for _ in range(MAX_STEPS):
-                reply = self._call_model()
-                if reply["text"]:
-                    self.transcript.append({"role": "assistant", "text": reply["text"]})
-                self.messages.append(reply["raw"])
-                if not reply["tool_calls"]:
-                    break
-                for tc in reply["tool_calls"]:
-                    result = self.run_tool(tc["name"], tc["args"])
-                    self.messages.append({"role": "tool", "tool_call_id": tc["id"], "content": result})
+            with self._turns:
+                for _ in range(MAX_STEPS):
+                    self._active = messages
+                    reply = self._call_model()
+                    if reply["text"]:
+                        transcript.append({"role": "assistant", "text": reply["text"]})
+                    messages.append(reply["raw"])
+                    if not reply["tool_calls"]:
+                        break
+                    for tc in reply["tool_calls"]:
+                        result = self.run_tool(tc["name"], tc["args"], session=s)
+                        messages.append({"role": "tool", "tool_call_id": tc["id"], "content": result})
         except Exception as e:  # noqa: BLE001
-            self.transcript.append({"role": "assistant", "text": f"model error: {e}"})
-            if self.messages and self.messages[-1]["role"] == "user":
-                self.messages.pop()
+            transcript.append({"role": "assistant", "text": f"model error: {e}"})
+            if messages and messages[-1]["role"] == "user":
+                messages.pop()
         finally:
-            self.busy = False
+            s["busy"] = False
+
+    def reset(self, sid: str | None = None) -> None:
+        s = self.session(sid)
+        s["transcript"].clear()
+        s["messages"].clear()
 
     def _call_model(self) -> dict:
         system = (SYSTEM_PROMPT.replace("USER_ID", self.human).replace("MODEL", self.model)
                   + "\n\n" + self._context_text())
         tools = [{"type": "function", "function": t} for t in TOOLS]
         payload = {"model": self.model, "max_tokens": 1200, "tools": tools,
-                   "messages": [{"role": "system", "content": system}] + self.messages}
+                   "messages": [{"role": "system", "content": system}] + (getattr(self, "_active", None) or self.messages)}
         req = urllib.request.Request(API_URL, data=json.dumps(payload).encode(), headers={
             "Content-Type": "application/json", "Authorization": "Bearer " + os.environ["OPENROUTER_API_KEY"],
             "HTTP-Referer": "https://github.com/The-AI-Disclosures-Project/Open-Memory-Protocol", "X-Title": "omp-live"})
@@ -258,8 +292,9 @@ class Agent:
         return {"text": (msg.get("content") or "").strip(), "tool_calls": calls, "raw": raw}
 
     # ---- UI state -------------------------------------------------------------------
-    def state(self) -> dict:
+    def state(self, sid: str | None = None) -> dict:
         c = self.context()
-        return {"model": self.model, "cwd": str(self.cwd), "busy": self.busy, "transcript": self.transcript,
+        s = self.session(sid)
+        return {"model": self.model, "cwd": str(self.cwd), "busy": s["busy"], "transcript": s["transcript"],
                 "tool_seq": self.tool_seq, "last_tool": self.last_tool,
                 "context": c, "context_text": self._context_text()}

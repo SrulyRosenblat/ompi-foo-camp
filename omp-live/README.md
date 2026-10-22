@@ -35,20 +35,34 @@ parked, forgets leave tombstones, every outcome is a receipt (spec §6.5,
 cd omp-live
 python3 -m venv .venv && . .venv/bin/activate
 pip install -e .
-omp-sync seed fictional-memories.json    # invented Cloudberry Observatory notes
-omp-sync demo                             # opens http://127.0.0.1:8700
+omp-sync seed aidp-memories.json    # public notes about the AI Disclosures Project
+omp-sync demo                       # opens http://127.0.0.1:8700
 ```
 
-The included Cloudberry Observatory fixture contains 23 entirely fictional memories (including 7 personal notes about an invented observer, Juniper Hale)
-and one retained earlier revision. All people, places, equipment, and operating
-rules are invented. Records have `attributes.fictional: true`; no creation dates
-are fabricated. Seeding adds records to a folder, so use a clean folder when
-starting a new demo.
+`aidp-memories.json` holds 32 notes. 27 restate public AI Disclosures Project
+material (its site, people and research pages, its Asimov’s Addendum blog, and the Open Memory Protocol
+repository, read on 2026-10-22), plus one retained earlier revision: the working
+spec moving from v0.1 to the v0.2 editors' draft. The other 5, under `personal/`, are
+Ilan's agent's notes about Ilan; two of them (he is an economist, he prefers direct
+communication) carry Sruly Rosenblat as the instructing human in `provenance`.
+Each record keeps its source URL
+in `attributes.source` and a `provenance` entry naming the seed. Edit the notes in
+`build_aidp_memories.py` and rerun it to regenerate the file and its embeddings.
+`fictional-memories.json` (the invented Cloudberry Observatory) is still there for
+a demo with no real names. Seeding adds records to a folder, so use a clean folder
+when starting a new demo.
 
-The dashboard keeps the agent on the right and shows one system at a
-time on the left: Wiki, Graph, Search or Trace (keys 1–4, F for full
-screen), with the receipt log underneath. Each new or edited memory starts
-an automatic journey: wiki → OMP → graph → search. The conversion shows the
+The dashboard is a light theme with Ilan's agent on the right and one system at a
+time on the left: File system, Knowledge graph, Search index or Compare (keys 1–4,
+F for full screen). **See the OMP format** (key O) has three tabs. **Field map** shows a
+memory as the file system, knowledge graph or search index stores it, wired field by
+field to its OMP record. **How it's shared** diagrams local and remote stores
+exchanging records through an export. **Reference** has the field guide, the export
+folder layout and the raw record or manifest. Each memory's **View OMP format** button
+opens it directly; links work too: `/#format=<identifier>@<version>?store=graph&tab=map`.
+Receipts, conflicts and tombstones sit behind the **Receipts** button; a badge
+counts unresolved conflicts. Each new or edited memory starts
+an automatic journey: file system → OMP → knowledge graph → search index. The conversion shows the
 original body beside the record, filling `identifier`, `media_type`, `body`,
 `attributes`, then each explicit `links` target. No presentation clicks are
 needed. Changes queue in order and each event keeps its own record snapshot.
@@ -208,6 +222,10 @@ content cannot be reconstructed. Metadata-only checksum variants can share a
 version. Forgetting erases retained content from the export and adapter history
 as well as the current views. Rebuilding a non-Markdown adapter restores retained
 history from the OMP export.
+
+A revision that only refreshes bookkeeping (for example the search index attaching
+a new embedding) keeps the version number, so one edit is one version; its receipt
+says "refreshed bookkeeping".
 
 Additional checks: `tests/test_revision_history.py`, `tests/test_supersession.py`
 and `tests/test_ui_writes.py`. Run test scripts individually; `test_live.py` is

@@ -60,7 +60,7 @@ def trace(sync: Sync, identifier: str) -> dict:
         if row:
             search_view = dict(row)
 
-    fields = [{"field": "embedding", "wiki": "dropped; markdown never holds the vector", "export": "in attributes, from search",
+    fields = [{"field": "embedding", "wiki": "dropped; markdown never holds the vector", "export": "in attributes, from the search index",
                "graph": KEPT, "search": "made here; ranks results by meaning"}]
     keys = list((export or {}).keys())
     for k in keys:

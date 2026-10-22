@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Agent</title>
+<title>Ilan’s agent</title>
 <style>
   :root { --bg:#f4f2fa; --card:#fff; --fg:#201d2b; --dim:#6e6880; --line:#e2ddf0; --me:#5b3fd1; --me-fg:#fff; --tool:#f1ecff; --tool-bar:#8b6cf0; --ok:#1e7a4c; --bad:#b3362f; }
   * { box-sizing: border-box; }
@@ -33,9 +33,9 @@
   @keyframes pulse { 50% { opacity: .2; } }
   @media (prefers-reduced-motion: reduce) { .typing::after { animation: none; } }
   form { display: flex; gap: 8px; padding: 10px 14px 12px; background: var(--card); border-top: 1px solid var(--line); }
-  input { flex: 1; min-width: 0; font: inherit; padding: 9px 14px; border: 1px solid var(--line); border-radius: 20px; outline: none; background: #fff; }
+  input { flex: 1; min-width: 0; font: inherit; padding: 12px 16px; font-size: 16px; border: 1px solid var(--line); border-radius: 22px; outline: none; background: #fff; }
   input:focus { border-color: var(--me); box-shadow: 0 0 0 3px rgba(91,63,209,.15); }
-  button.send { font: inherit; font-size: 13px; padding: 7px 16px; border-radius: 18px; border: 0; background: var(--me); color: #fff; cursor: pointer; }
+  button.send { font: inherit; font-size: 15px; padding: 10px 20px; border-radius: 18px; border: 0; background: var(--me); color: #fff; cursor: pointer; }
   button.send:focus-visible, header button:focus-visible { outline: 2px solid var(--me); outline-offset: 2px; }
   .drawer { position: fixed; inset: 42px 0 0 0; background: var(--card); overflow: auto; padding: 14px; display: none; }
   .drawer.open { display: block; }
@@ -43,63 +43,123 @@
   .drawer p { margin: 0 0 12px; color: var(--dim); font-size: 12.5px; }
   .drawer pre.ctx { white-space: pre-wrap; word-break: break-word; font: 12px/1.5 ui-monospace, Menlo, monospace; background: var(--bg); border: 1px solid var(--line); border-radius: 6px; padding: 10px; }
   .drawer code { font-family: ui-monospace, Menlo, monospace; font-size: 12px; }
-  .empty { color: var(--dim); margin: auto; text-align: center; font-size: 13px; max-width: 34ch; }
+  .empty { color: var(--dim); margin: auto; text-align: center; font-size: 16px; max-width: 34ch; }
 </style>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,600;1,9..144,400&family=Hanken+Grotesk:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap">
 <style id="signal-theme">
-  :root { --bg:#12141a; --card:#161920; --fg:#ece8e0; --dim:#8f95a0; --line:#2a2f39; --me:#ff6a45; --me-fg:#fff; --tool:#1a1d24; --tool-bar:#f3b54a; --ok:#6fdc9b; --bad:#ff6b6b; }
-  body { font-family: "Hanken Grotesk","Avenir Next","Segoe UI",sans-serif; -webkit-font-smoothing: antialiased; font-size: 13.5px; }
-  .msg.user { background: linear-gradient(135deg,#ff7a55,#ff5a36); box-shadow: 0 8px 18px -10px #ff6a45; font-weight: 500; }
+  :root { color-scheme: light; --bg:#f6f9fe; --card:#f6f9fe; --fg:#221f1a; --dim:#5e584d; --line:#d3def0; --me:#2d63b0; --me-fg:#fff; --tool:#fffdf8; --tool-bar:#b26f12; --ok:#2c8552; --bad:#c0392f; }
+  body { font-family: "Hanken Grotesk","Avenir Next","Segoe UI",sans-serif; -webkit-font-smoothing: antialiased; font-size: 16.5px; }
+  header { background: var(--bg); border-bottom-color: #e3eaf5; }
+  .thread { padding: 18px 16px; gap: 14px; }
+  .msg.user { background: var(--me); box-shadow: 0 8px 18px -12px #2d63b0; font-weight: 500; }
+  .msg.assistant { line-height: 1.6; }
+  .msg.tool { border: 1px solid #e2d9c7; border-left: 3px solid var(--tool-bar); border-radius: 0 10px 10px 0; }
   .msg.tool, .drawer pre.ctx, .drawer code { font-family: "JetBrains Mono",ui-monospace,Menlo,monospace; }
-  .msg.tool.read, .msg.tool.ls { background: #15181e; border-left-color: #3a404c; }
-  .msg.tool .cmd b { color: #8fc3ff; }
-  input { background: #0f1115; color: var(--fg); border-color: #353b47; }
-  input:focus { box-shadow: 0 0 0 3px rgba(255,106,69,.2); }
-  header .ctx { color: #f3b54a; }
-  ::-webkit-scrollbar { width: 8px } ::-webkit-scrollbar-thumb { background: #2a2f39; border-radius: 8px }
+  .msg.tool.read, .msg.tool.ls { background: #eef3fb; border-color: #d3def0; border-left-color: #8aa6d1; }
+  .msg.tool .cmd b { color: #1f4f94; }
+  form { background: var(--bg); border-top-color: #e3eaf5; padding: 12px 16px 14px; }
+  input { background: #fff; color: var(--fg); border-color: #c9d6ea; }
+  input::placeholder { color: #6b7488; }
+  input:focus { border-color: var(--me); box-shadow: 0 0 0 3px rgba(45,99,176,.18); }
+  button.send { background: #d4471e; box-shadow: 0 8px 16px -10px #d4471e; font-weight: 600; }
+  button.send:hover { background: #bf3c16; }
+  header .ctx { color: #8a5508; }
+  .drawer { background: var(--bg); }
+  .drawer pre.ctx { background: #fff; }
+  .empty { color: var(--dim); line-height: 1.6; }
+  ::-webkit-scrollbar { width: 8px } ::-webkit-scrollbar-thumb { background: #c9d6ea; border-radius: 8px }
+  header { height: 44px; } header .model { display: none; } header .ctx, header .clear { font-size: 13px; }
+  .thread { padding: 22px 18px; gap: 16px; }
+  .msg { max-width: 100%; }
+  .msg.user { padding: 11px 16px; border-radius: 20px 20px 6px 20px; max-width: 85%; }
+  .msg.assistant { background: #fff; border: 1px solid #dfe7f3; border-radius: 6px 20px 20px 20px; padding: 14px 18px; box-shadow: 0 10px 24px -18px #2d63b0; white-space: normal; }
+  .msg.assistant p { margin: 0 0 .7em; } .msg.assistant p:last-child { margin: 0; }
+  .msg.assistant code { font: .86em "JetBrains Mono", monospace; background: #eef3fb; padding: 1px 6px; border-radius: 6px; color: #1f4f94; }
+  .msg.assistant .file { font: 600 .82em "JetBrains Mono", monospace; background: #fbf1e2; color: #8a5508; padding: 2px 8px; border-radius: 99px; white-space: nowrap; }
+  .who { font: 600 11.5px "JetBrains Mono", monospace; letter-spacing: .1em; text-transform: uppercase; color: #2d63b0; margin: 4px 0 -8px 4px; }
+  .who.me { align-self: flex-end; margin: 4px 4px -8px 0; color: #8a8273; }
+  .steps { align-self: stretch; display: flex; flex-direction: column; gap: 4px; padding-left: 12px; border-left: 2px dotted #c9d6ea; margin-left: 6px; }
+  .msg.tool { background: none !important; border: 0 !important; padding: 3px 0; font: 14px/1.4 "Hanken Grotesk", sans-serif; }
+  .msg.tool .cmd { display: flex; align-items: center; gap: 8px; }
+  .msg.tool .ico { flex: none; width: 24px; height: 24px; border-radius: 8px; display: grid; place-items: center; font-size: 12px; background: #e6eef9; color: #2d63b0; }
+  .msg.tool.write .ico, .msg.tool.edit .ico { background: #fbf1e2; color: #b26f12; }
+  .msg.tool.err .ico { background: #fbe4e1; color: #c0392f; }
+  .msg.tool .verb { color: var(--dim); } .msg.tool .p { font: 500 13px "JetBrains Mono", monospace; color: var(--fg); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; min-width: 0; }
+  .msg.tool details { margin: 2px 0 0 32px; } .msg.tool summary { font-size: 12.5px; }
+  .msg.tool pre { font-size: 12px; background: #fff; border: 1px solid #e3eaf5; border-radius: 8px; padding: 8px 10px; }
+  .msg.tool .res { margin: 2px 0 0 32px; font-size: 13px; }
+  .empty { display: flex; flex-direction: column; align-items: center; gap: 14px; font-size: 17px; max-width: 36ch; }
+  .empty .big { font: 600 26px/1.2 "Fraunces", Georgia, serif; color: var(--fg); }
+  .chips { display: flex; flex-direction: column; gap: 8px; width: 100%; }
+  .chips button { font: 500 15px "Hanken Grotesk", sans-serif; text-align: left; padding: 11px 16px; border-radius: 14px; border: 1px solid #c9d6ea; background: #fff; color: #1f4f94; cursor: pointer; transition: border-color .2s, transform .2s; }
+  .chips button:hover { border-color: #2d63b0; transform: translateY(-1px); }
+  .typing { font-size: 15px; margin-left: 6px; }
 </style>
 </head>
 <body>
 <header><span class="model" id="model"></span><button class="ctx" id="ctx" onclick="toggle()"></button><button class="clear" onclick="reset()">Clear</button></header>
 <div class="thread" id="thread"></div>
-<form onsubmit="send(event)"><input id="in" placeholder="Ask about Cloudberry Observatory" autocomplete="off"><button class="send">Send</button></form>
+<form onsubmit="send(event)"><input id="in" placeholder="Ask about the AI Disclosures Project" autocomplete="off"><button class="send">Send</button></form>
 <div class="drawer" id="drawer"></div>
 <script>
 let last = "", state = null, drawerOpen = false;
+// A fresh conversation for every page load, so a refresh or a new visitor starts with an empty chat.
+const SESSION = crypto.randomUUID ? crypto.randomUUID() : String(Math.random()).slice(2) + Date.now();
 const esc = s => String(s).replace(/[&<>"]/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]));
 const $ = id => document.getElementById(id);
-const EMPTY = `<div class="empty">This demo contains invented people and observatory notes. Ask about Cloudberry Observatory or update one of its fictional records.</div>`;
+const ASK = ["How should you talk to me?", "What is Asimov’s Addendum?", "What is the Open Memory Protocol?", "Remember that I prefer short answers"];
+const EMPTY = `<div class="empty"><div class="big">Ask Ilan’s agent</div><div>It remembers public notes about the AI Disclosures Project, and a few things about Ilan.</div><div class="chips">${ASK.map(q => `<button type="button" onclick="ask(this.textContent)">${esc(q)}</button>`).join("")}</div></div>`;
+function md(t) {
+  const inline = x => esc(x)
+    .replace(/\[([^\]]+)\]\(([^)\s]+\.md)\)/g, (_, label) => `<span class="file">${label}</span>`)
+    .replace(/`([^`]+\.md)`/g, '<span class="file">$1</span>')
+    .replace(/`([^`]+)`/g, "<code>$1</code>")
+    .replace(/\*\*([^*]+)\*\*/g, "<b>$1</b>");
+  return String(t).trim().split(/\n{2,}/).map(p => `<p>${inline(p).replace(/\n/g, "<br>")}</p>`).join("");
+}
 function toolCard(m) {
   const a = m.args || {}, err = /^(error|no such|old_text occurs|timed out|unknown tool)/.test(m.result) || /\[exit \d+\]$/.test(m.result);
   let head, body = "";
-  if (m.name === "bash") { head = `<b>$</b> <span class="p">${esc(a.command || "")}</span>`; body = `<pre>${esc(m.result)}</pre>`; }
+  if (m.name === "bash") { head = `<b>$</b> <span class="p">${esc(a.command || "")}</span>`; body = `<details><summary>output</summary><pre>${esc(m.result)}</pre></details>`; }
   else if (m.name === "read") { head = `<b>read</b> <span class="p">${esc(a.path || "")}</span>`; body = `<details><summary>${m.result.split("\n").length} lines</summary><pre>${esc(m.result)}</pre></details>`; }
   else if (m.name === "ls") { head = `<b>ls</b> <span class="p">${esc(a.path || ".")}</span>`; body = `<details><summary>${m.result.split("\n").length} entries</summary><pre>${esc(m.result)}</pre></details>`; }
-  else if (m.name === "write") { head = `<b>write</b> <span class="p">${esc(a.path || "")}</span>`; body = `<details><summary>${(a.content || "").length} chars</summary><pre>${esc(a.content || "")}</pre></details><div class="res ${err ? "err" : ""}">${esc(m.result)}</div>`; }
-  else if (m.name === "edit") { head = `<b>edit</b> <span class="p">${esc(a.path || "")}</span>`; body = `<details><summary>diff</summary><pre>- ${esc(a.old_text || "")}\n+ ${esc(a.new_text || "")}</pre></details><div class="res ${err ? "err" : ""}">${esc(m.result)}</div>`; }
+  else if (m.name === "write") { head = `<b>write</b> <span class="p">${esc(a.path || "")}</span>`; body = `<details><summary>${(a.content || "").length} chars</summary><pre>${esc(a.content || "")}</pre></details>${err ? `<div class="res err">${esc(m.result)}</div>` : ""}`; }
+  else if (m.name === "edit") { head = `<b>edit</b> <span class="p">${esc(a.path || "")}</span>`; body = `<details><summary>diff</summary><pre>- ${esc(a.old_text || "")}\n+ ${esc(a.new_text || "")}</pre></details>${err ? `<div class="res err">${esc(m.result)}</div>` : ""}`; }
   else { head = `<b>${esc(m.name)}</b>`; body = `<pre>${esc(m.result)}</pre>`; }
-  return `<div class="msg tool ${esc(m.name)}"><div class="cmd">${head}</div>${body}</div>`;
+  const ICON = { read: "◉", ls: "☰", write: "✎", edit: "✎", bash: "$" }, VERB = { read: "Read", ls: "Listed", write: "Wrote", edit: "Edited", bash: "Ran" };
+  head = `<span class="ico">${ICON[m.name] || "•"}</span><span class="verb">${VERB[m.name] || esc(m.name)}</span> <span class="p">${esc(m.name === "bash" ? a.command || "" : a.path || (m.name === "ls" ? "." : ""))}</span>`;
+  return `<div class="msg tool ${esc(m.name)}${err ? " err" : ""}"><div class="cmd">${head}</div>${body}</div>`;
 }
 function render() {
-  $("model").textContent = state.model;
+  $("model").textContent = state.model; $("ctx").title = "Model: " + state.model;
   $("ctx").textContent = drawerOpen ? "Back to the chat" : `Context: MEMORY.md + ${state.context.index.length} files`;
   const t = $("thread"), atBottom = t.scrollTop + t.clientHeight >= t.scrollHeight - 30;
-  t.innerHTML = state.transcript.map(m => m.role === "tool" ? toolCard(m) : `<div class="msg ${esc(m.role)}">${esc(m.text)}</div>`).join("") || EMPTY;
+  let html = "", inSteps = false, prev = null;
+  for (const m of state.transcript) {
+    if (m.role === "tool") { if (!inSteps) { if (prev !== "assistant") html += `<div class="who">Ilan’s agent</div>`; html += `<div class="steps">`; inSteps = true; } html += toolCard(m); prev = "tool"; continue; }
+    if (inSteps) { html += `</div>`; inSteps = false; }
+    if (m.role === "user") html += `<div class="who me">You</div><div class="msg user">${esc(m.text)}</div>`;
+    else html += (prev === "tool" ? "" : `<div class="who">Ilan’s agent</div>`) + `<div class="msg assistant">${md(m.text)}</div>`;
+    prev = m.role;
+  }
+  if (inSteps) html += `</div>`;
+  t.innerHTML = html || EMPTY;
   if (state.busy) t.innerHTML += `<div class="typing">Thinking</div>`;
   if (atBottom) t.scrollTop = t.scrollHeight;
   $("drawer").classList.toggle("open", drawerOpen);
-  if (drawerOpen) $("drawer").innerHTML = `<h3>What the agent sees each turn</h3><p>The markdown loading contract (§10.2): MEMORY.md in full, every other file as an index it reads on demand. Working directory: <code>${esc(state.cwd)}</code>.</p><pre class="ctx">${esc(state.context_text)}</pre>`;
+  if (drawerOpen) $("drawer").innerHTML = `<h3>What Ilan’s agent sees each turn</h3><p>The markdown loading contract (§10.2): MEMORY.md in full, every other file as an index it reads on demand. Working directory: <code>${esc(state.cwd)}</code>.</p><pre class="ctx">${esc(state.context_text)}</pre>`;
 }
 function toggle() { drawerOpen = !drawerOpen; render(); }
 async function send(e) {
   e.preventDefault();
   const v = $("in").value.trim(); if (!v) return; $("in").value = ""; drawerOpen = false;
-  await fetch("api/chat", { method: "POST", body: JSON.stringify({ message: v }) }); last = ""; poll();
+  await fetch("api/chat", { method: "POST", body: JSON.stringify({ message: v, session: SESSION }) }); last = ""; poll();
 }
-async function reset() { await fetch("api/reset", { method: "POST", body: "{}" }); last = ""; poll(); }
+async function ask(q) { $("in").value = q; $("in").form.requestSubmit(); }
+async function reset() { await fetch("api/reset", { method: "POST", body: JSON.stringify({ session: SESSION }) }); last = ""; poll(); }
 async function poll() {
   try {
-    const txt = await (await fetch("api/state")).text(); if (txt === last) return; last = txt; state = JSON.parse(txt);
+    const txt = await (await fetch("api/state?session=" + encodeURIComponent(SESSION))).text(); if (txt === last) return; last = txt; state = JSON.parse(txt);
     if (!state.context || typeof state.context_text !== "string") { $("thread").innerHTML = `<div class="empty">This page is newer than the server it is talking to. Stop <code>omp-sync demo</code> (Ctrl-C) and start it again.</div>`; return; }
     render();
   } catch (e) {}

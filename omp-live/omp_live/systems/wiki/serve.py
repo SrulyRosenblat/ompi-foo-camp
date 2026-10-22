@@ -25,7 +25,7 @@ def server(system: WikiSystem, port: int, sync=None, service=None):
                 page = next((p for p in system.pages() if p['path'] == b['path']), None)
                 record = sync.export.get(page['meta']['identifier']) if page else None
                 if record is None or version_value(record) != b['if_version']:
-                    raise ValueError('This page changed elsewhere. Your draft was not saved; review the latest version.')
+                    raise ValueError('This file changed elsewhere. Your draft was not saved; review the latest version.')
             system.write_page(b["path"], b["body"], b.get("title"), b.get("tags"))
             if sync:
                 sync.reconcile()
@@ -35,7 +35,7 @@ def server(system: WikiSystem, port: int, sync=None, service=None):
         rel = b.get("path") or (slug(b["title"]) + ".md")
         with sync._lock if sync else nullcontext():
             if inside(system.root, wiki_path(rel)).exists():
-                raise ValueError('A page already exists at this path. Open it or choose another name.')
+                raise ValueError('A file already exists at this path. Open it or choose another name.')
             system.write_page(rel, b.get("body", ""), b.get("title"))
             if sync:
                 sync.reconcile()

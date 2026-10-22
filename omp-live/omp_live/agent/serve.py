@@ -10,15 +10,14 @@ HTML = Path(__file__).with_name("ui.html")
 
 def server(agent: Agent, port: int):
     def state(q, b):
-        return agent.state()
+        return agent.state(q.get("session"))
 
     def chat(q, b):
-        agent.chat(b["message"])
+        agent.chat(b["message"], b.get("session"))
         return {"ok": True}
 
     def reset(q, b):
-        agent.transcript.clear()
-        agent.messages.clear()
+        agent.reset(b.get("session"))
         return {"ok": True}
 
     return make_server(port, HTML, {

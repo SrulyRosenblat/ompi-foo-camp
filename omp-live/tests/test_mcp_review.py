@@ -43,7 +43,8 @@ class ReviewTests(unittest.TestCase):
     def test_if_version_survives_an_embedding_only_revision(self):
         m = self.service.add_memory("# Coffee\n\nBlack coffee.")
         self.embed()
-        self.assertGreater(self.service.get_memory(m["identifier"])["version"]["value"], m["version"]["value"])
+        # Adding the vector is bookkeeping: it keeps the version, so one change never reads as two.
+        self.assertEqual(self.service.get_memory(m["identifier"])["version"]["value"], m["version"]["value"])
         updated = self.service.update_memory(m["identifier"], body="# Coffee\n\nBlack coffee, no sugar.",
                                              if_version=m["version"]["value"])
         self.assertIn("no sugar", updated["body"])

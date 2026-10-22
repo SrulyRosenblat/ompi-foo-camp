@@ -1,0 +1,23 @@
+# Deploys omp-live to https://ompi.fly.dev on every push to main that touches omp-live/.
+name: Deploy omp-live to Fly.io
+
+on:
+  push:
+    branches: [main]
+    paths: ["omp-live/**", ".github/workflows/fly-deploy.yml"]
+  workflow_dispatch:
+
+concurrency: fly-deploy
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: omp-live
+    steps:
+      - uses: actions/checkout@v4
+      - uses: superfly/flyctl-actions/setup-flyctl@master
+      - run: flyctl deploy --remote-only -a ompi
+        env:
+          FLY_API_TOKEN: ${{ secrets.FLY_API_TOKEN }}

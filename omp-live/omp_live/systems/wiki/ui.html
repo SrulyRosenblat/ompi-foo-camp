@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Wiki</title>
+<title>File system</title>
 <style>
   :root { --page:#ffffff; --side:#f6f6f6; --ink:#202122; --ink-2:#54595d; --rule:#a2a9b1; --rule-2:#eaecf0; --link:#3366cc; --red:#d33; --amber:#ac6600; --green:#14866d; }
   * { box-sizing: border-box; }
@@ -21,6 +21,7 @@
   .title { font: 400 27px/1.25 "Linux Libertine", Georgia, "Times New Roman", serif; margin: 0 0 2px; padding-bottom: 4px; border-bottom: 1px solid var(--rule); }
   .byline { color: var(--ink-2); font-size: 12.5px; margin: 6px 0 12px; }
   .byline .unknown { color: var(--red); }
+  .byline a { color: var(--link); }
   .infobox { float: right; width: 190px; margin: 0 0 12px 18px; padding: 8px 10px; background: var(--side); border: 1px solid var(--rule-2); font-size: 12px; }
   @media (max-width: 760px) { .infobox { float: none; width: auto; margin: 0 0 14px; display: grid; grid-template-columns: auto 1fr; gap: 2px 12px; } .infobox dd { margin: 0; } }
   .infobox dt { color: var(--ink-2); }
@@ -38,7 +39,7 @@
   a.wl { color: var(--link); text-decoration: none; }
   a.wl:hover { text-decoration: underline; }
   a.wl.dangling { color: var(--red); }
-  a.wl.dangling::after { content: " (page does not exist)"; font-size: .85em; color: var(--ink-2); }
+  a.wl.dangling::after { content: " (file does not exist)"; font-size: .85em; color: var(--ink-2); }
   .backlinks { clear: both; margin-top: 28px; padding-top: 8px; border-top: 1px solid var(--rule-2); font-size: 12.5px; color: var(--ink-2); }
   button { font: inherit; font-size: 12.5px; background: #f8f9fa; border: 1px solid var(--rule); color: var(--ink); padding: 3px 10px; border-radius: 2px; cursor: pointer; }
   button:hover { background: #fff; }
@@ -53,29 +54,39 @@
   @media (prefers-reduced-motion: reduce) { .flash { animation: none; background: #fff3b0; } }
 </style>
 <style>
-:root{--page:#14171d;--side:#101217;--ink:#ece8e0;--ink-2:#a0a5ae;--rule:#363c48;--rule-2:#272c36;--link:#8fc3ff;--red:#ff8585;--amber:#f3b54a;--green:#6fdc9b}
-body{font-family:"Avenir Next",system-ui,sans-serif}nav{border-right:1px solid var(--rule-2)}nav a.active{background:#f3b54a15;color:var(--ink);box-shadow:inset 2px 0 var(--amber)}.title{font-family:Georgia,serif}.infobox{background:#1b1f27}.toolbar button,nav button{background:#1b1f27;color:var(--ink);border-color:var(--rule);border-radius:99px}textarea,.field input{background:#101217;color:var(--ink);border-color:var(--rule)}code,pre{background:#1b1f27!important;color:var(--ink)}.flash{animation:signal-flash 2s ease-out}@keyframes signal-flash{from{background:#f3b54a22}to{background:transparent}}
-.drag-hint{color:var(--ink-2);font-size:11px;line-height:1.5;margin-top:12px}.folder{border-radius:4px;padding:4px 6px!important;min-height:28px;transition:background .15s}.folder.drop-target{background:#f3b54a33;color:var(--ink);outline:1px dashed var(--amber)}nav a.dragging{opacity:.4}#move-status{font-size:11px;line-height:1.5;margin-top:10px;color:var(--green);overflow-wrap:anywhere}#move-status.error{color:var(--red)}.move-controls{display:flex;gap:7px;align-items:center;flex-wrap:wrap;margin-left:auto}.move-controls label{font-size:12px;color:var(--ink-2)}.move-controls select{background:#101217;color:var(--ink);border:1px solid var(--rule);padding:4px 7px;max-width:230px;border-radius:5px}.toolbar{flex-wrap:wrap}
-body{grid-template-columns:220px minmax(0,1fr)}nav,main{min-width:0}main{overflow-wrap:anywhere}.title{overflow-wrap:anywhere}nav .brand{color:var(--amber);font-family:inherit;font-size:14px}nav a{padding:5px 8px 5px 18px;border-radius:4px}nav a:focus-visible,input:focus-visible,textarea:focus-visible,select:focus-visible,summary:focus-visible{outline:2px solid var(--amber);outline-offset:2px}nav .folder{cursor:pointer;display:flex;align-items:center;gap:6px;list-style:none}nav .folder::before{content:'▸';flex:none}nav details[open]>.folder::before{content:'▾'}nav summary::-webkit-details-marker{display:none}.folder-name{overflow-wrap:anywhere;min-width:0}.folder-count{margin-left:auto;font-size:11px;color:var(--ink-2)}.folder-empty{padding:2px 8px 6px 18px;color:var(--ink-2);font-size:11px}.sidebar-actions{display:flex;gap:6px;flex-wrap:wrap}.sidebar-actions button{margin-top:12px;width:auto;flex:1;white-space:nowrap}.drag-hint{margin-top:10px}.nav-toggle{display:none}button:disabled{opacity:.5;cursor:default}button:hover{background:#272c36}.editor-note{font-size:12px;color:var(--ink-2);margin:10px 0}.editor-status{font-size:12px;color:var(--amber);min-height:1.6em}.editor-status.error{color:var(--red)}textarea{resize:vertical;min-height:40vh}article{min-width:0}article pre{max-width:100%}.move-controls select{min-width:100px;width:auto;max-width:100%}.move-help{font-size:11px;color:var(--ink-2);flex-basis:100%;text-align:right}.toolbar{align-items:center}#move-status:empty{margin:0}
+:root{color-scheme:light;--page:#fffdf8;--side:#f7f2e8;--ink:#221f1a;--ink-2:#5e584d;--rule:#d3c8b2;--rule-2:#e2d9c7;--link:#2d63b0;--red:#c0392f;--amber:#b26f12;--green:#2c8552}
+body{font-family:"Hanken Grotesk","Avenir Next",system-ui,sans-serif;background:var(--side)}nav{border-right:1px solid var(--rule-2);padding:18px 12px 18px 14px}main{border-left:0;padding:26px 34px 60px}nav a.active{background:#b26f1214;color:var(--ink);box-shadow:inset 2px 0 var(--amber)}.title{font-family:"Fraunces",Georgia,serif;font-weight:400;letter-spacing:-.01em;border-bottom-color:var(--rule-2)}article h1,article h2{font-family:"Fraunces",Georgia,serif}.infobox{background:var(--side);border:0;border-radius:12px;padding:12px 14px}.infobox dd{font-family:"JetBrains Mono",ui-monospace,Menlo,monospace}.toolbar button,nav button{background:var(--page);color:var(--ink);border-color:var(--rule);border-radius:99px;padding:4px 12px}textarea,.field input{background:#fff;color:var(--ink);border-color:var(--rule);border-radius:10px}code,pre{background:#f3ece0!important;color:var(--ink);border-color:var(--rule-2)!important;border-radius:6px}.flash{animation:signal-flash 2s ease-out}@keyframes signal-flash{from{background:#b26f1224}to{background:transparent}}::-webkit-scrollbar{width:8px}::-webkit-scrollbar-thumb{background:#d3c8b2;border-radius:8px}
+.drag-hint{color:var(--ink-2);font-size:11px;line-height:1.5;margin-top:12px}.folder{border-radius:4px;padding:4px 6px!important;min-height:28px;transition:background .15s}.folder.drop-target{background:#b26f1222;color:var(--ink);outline:1px dashed var(--amber)}nav a.dragging{opacity:.4}#move-status{font-size:11px;line-height:1.5;margin-top:10px;color:var(--green);overflow-wrap:anywhere}#move-status.error{color:var(--red)}.move-controls{display:flex;gap:7px;align-items:center;flex-wrap:wrap;margin-left:auto}.move-controls label{font-size:12px;color:var(--ink-2)}.move-controls select{background:#fff;color:var(--ink);border:1px solid var(--rule);padding:4px 7px;max-width:230px;border-radius:5px}.toolbar{flex-wrap:wrap}
+body{grid-template-columns:220px minmax(0,1fr)}nav,main{min-width:0}main{overflow-wrap:anywhere}.title{overflow-wrap:anywhere}nav .brand{color:var(--amber);font:600 11px "JetBrains Mono",ui-monospace,monospace;letter-spacing:.12em;text-transform:uppercase}nav a{padding:5px 8px 5px 18px;border-radius:6px}nav a:not(.active){color:var(--link)}nav .folder{color:var(--ink-2)}nav a:focus-visible,input:focus-visible,textarea:focus-visible,select:focus-visible,summary:focus-visible{outline:2px solid var(--amber);outline-offset:2px}nav .folder{cursor:pointer;display:flex;align-items:center;gap:6px;list-style:none}nav .folder::before{content:'▸';flex:none}nav details[open]>.folder::before{content:'▾'}nav summary::-webkit-details-marker{display:none}.folder-name{overflow-wrap:anywhere;min-width:0}.folder-count{margin-left:auto;font-size:11px;color:var(--ink-2)}.folder-empty{padding:2px 8px 6px 18px;color:var(--ink-2);font-size:11px}.sidebar-actions{display:flex;gap:6px;flex-wrap:wrap}.sidebar-actions button{margin-top:12px;width:auto;flex:1;white-space:nowrap}.drag-hint{margin-top:10px}.nav-toggle{display:none}button:disabled{opacity:.5;cursor:default}button:hover{background:#fff;border-color:var(--amber)}.editor-note{font-size:12px;color:var(--ink-2);margin:10px 0}.editor-status{font-size:12px;color:var(--amber);min-height:1.6em}.editor-status.error{color:var(--red)}textarea{resize:vertical;min-height:40vh}article{min-width:0}article pre{max-width:100%}.move-controls select{min-width:100px;width:auto;max-width:100%}.move-help{font-size:11px;color:var(--ink-2);flex-basis:100%;text-align:right}.toolbar{align-items:center}#move-status:empty{margin:0}
 @media(max-width:600px){body{display:flex;flex-direction:column;height:100dvh}nav{flex:none;max-height:42dvh;padding:10px 14px;border-bottom:1px solid var(--rule);overflow:auto}nav .brand{margin:0;display:flex;align-items:center;justify-content:space-between}.nav-toggle{display:inline-block;margin:0;width:auto}nav.sidebar-closed #sidebar-content{display:none}main{flex:1;padding:18px 16px 36px;border-left:0}.title{font-size:24px}.sidebar-actions button{margin-top:8px}#tree{margin-top:6px}.toolbar{gap:8px}.toolbar button{min-height:36px}.move-controls{margin-left:0;flex-basis:100%;margin-top:8px}.move-help{text-align:left}.infobox{grid-template-columns:minmax(70px,auto) minmax(0,1fr)}textarea{min-height:36vh}}
-@media(prefers-reduced-motion:reduce){.folder{transition:none}.flash{animation:none;background:#f3b54a22}}
-</style></head>
+@media(prefers-reduced-motion:reduce){.folder{transition:none}.flash{animation:none;background:#b26f1224}}
+</style><style id="big-type">
+body{grid-template-columns:250px minmax(0,1fr);font-size:16px}nav{font-size:14.5px;padding:18px 12px 18px 14px}nav a{padding:6px 10px 6px 20px;line-height:1.35}.folder-count{font-size:12px}nav .brand{font-size:12px;margin-bottom:16px}
+.title{font-size:36px;letter-spacing:-.01em}.byline{font-size:14px}article{font-size:17px;line-height:1.7;max-width:68ch}article h1,article h2{font-size:24px}article h3{font-size:18px}
+.infobox{font-size:13.5px;width:210px;border-radius:12px;padding:12px 14px}.infobox dd{font-size:12.5px}.backlinks{font-size:14px}
+button{font-size:14px;padding:6px 14px;border-radius:999px}.move-controls label,.move-help{font-size:13px}.drag-hint{font-size:12px}main{padding:32px 44px 60px}.move-controls{margin-left:0;flex-basis:100%;margin-top:4px;padding-top:12px;border-top:1px dashed var(--rule-2)}.move-help{text-align:left;flex-basis:auto}
+</style>
+</head>
 <body>
-<nav aria-label="Wiki pages">
-  <div class="brand">Team wiki <button class="nav-toggle" aria-expanded="true" aria-controls="sidebar-content" onclick="toggleSidebar()">Hide pages</button></div>
+<nav aria-label="Files">
+  <div class="brand">Files <button class="nav-toggle" aria-expanded="true" aria-controls="sidebar-content" onclick="toggleSidebar()">Hide files</button></div>
   <div id="sidebar-content">
   <div id="tree"></div>
-  <div class="sidebar-actions"><button onclick="newPage()">Create a page</button><button onclick="newFolder()">New folder</button></div><div class="drag-hint">Drag a note onto a folder, or use Folder → Move on the page.</div>
+  <div class="sidebar-actions"><button onclick="newPage()">New file</button><button onclick="newFolder()">New folder</button></div><div class="drag-hint">Drag a note onto a folder, or use Folder → Move on the page.</div>
   </div><div id="move-status" role="status" aria-live="polite" aria-atomic="true"></div>
 </nav>
 <main id="main"><div class="empty">Loading…</div></main>
 <script>
+// Inside the dashboard, [data-omp-format] buttons open that memory's OMP record there.
+const EMBEDDED=window.parent!==window;
+document.addEventListener('click',e=>{const b=e.target.closest?.('[data-omp-format]');if(!b||!EMBEDDED)return;e.preventDefault();parent.postMessage({type:'omp-format',identifier:b.dataset.ompFormat,version:b.dataset.ompVersion?Number(b.dataset.ompVersion):undefined},'*');});
+
 let pages = [], current = null, lastJson = "", editing = false, flashNext = false, folders = [], dragging = null, moving = false;
 let editSnapshot = null, busy = false, pollSequence = 0, appliedSequence = 0, mutationEpoch = 0;
 const collapsedFolders = new Set();
-function toggleSidebar(){const nav=document.querySelector('nav'),closed=nav.classList.toggle('sidebar-closed'),button=nav.querySelector('.nav-toggle');button.setAttribute('aria-expanded',String(!closed));button.textContent=closed?'Show pages':'Hide pages';}
+function toggleSidebar(){const nav=document.querySelector('nav'),closed=nav.classList.toggle('sidebar-closed'),button=nav.querySelector('.nav-toggle');button.setAttribute('aria-expanded',String(!closed));button.textContent=closed?'Show files':'Hide files';}
 function editorStatus(text,error=false){const el=document.getElementById('editor-status');if(el){el.textContent=text;el.classList.toggle('error',error);}}
-function canLeaveEditor(){if(busy||moving){moveStatus('Please wait for the current change to finish.');return false;}if(editing){editorStatus('Save your draft or cancel editing before opening, creating, or moving a page.');document.getElementById('ed')?.focus();return false;}return true;}
+function canLeaveEditor(){if(busy||moving){moveStatus('Please wait for the current change to finish.');return false;}if(editing){editorStatus('Save your draft or cancel editing before opening, creating, or moving a file.');document.getElementById('ed')?.focus();return false;}return true;}
 function beginEdit(){if(busy||moving)return;const p=pages.find(p=>p.path===current);if(!p)return;editSnapshot=structuredClone(p);editing=true;flashNext=false;renderPage();document.getElementById('ed-title').focus();}
 function cancelEdit(){if(busy)return;editing=false;editSnapshot=null;flashNext=false;renderPage();}
 function editContent(p){return JSON.stringify([p.body,p.title||'',p.meta?.tags||[]]);}
@@ -117,8 +128,12 @@ function md(src) {
 
 function byline(meta) {
   const prov = (meta.provenance || []).filter(p => p && (p.kind === "human" || p.kind === "agent"));
-  if (!prov.length) return `<span class="unknown">Author unknown.</span> No provenance travelled with this page.`;
-  return "Written by " + prov.map(p => `${esc(p.name || p.id)} (${esc(p.kind)}, ${esc(p.contribution || "contributed")})`).join(", ") + ".";
+  const systems = (meta.provenance || []).filter(p => p && p.kind === "system");
+  const src = meta.attributes?.source;
+  const source = /^https?:\/\//.test(src || "") ? ` Source: <a href="${esc(src)}" target="_blank" rel="noopener">${esc(src.replace(/^https?:\/\//, ""))}</a>.` : "";
+  const imported = systems.length ? `Imported by ${systems.map(p => esc(p.name || p.id)).join(", ")}.` : "";
+  if (!prov.length) return (imported ? imported : `<span class="unknown">Author unknown.</span> No provenance travelled with this file.`) + source;
+  return "Written by " + prov.map(p => `${esc(p.name || p.id)} (${esc(p.kind)}, ${esc(p.contribution || "contributed")})`).join(", ") + "." + (imported ? " " + imported : "") + source;
 }
 
 function moveStatus(text,error=false){const el=document.getElementById('move-status');el.textContent=text;el.classList.toggle('error',error);}
@@ -130,14 +145,14 @@ function renderTree() {
     const group=document.createElement('details');group.open=!collapsedFolders.has(dir);
     const f=document.createElement('summary');f.className='folder';f.dataset.folder=dir;
     const name=document.createElement('span');name.className='folder-name';name.textContent=dir||'Top level';
-    const count=document.createElement('span');count.className='folder-count';count.textContent=groups[dir].length;count.setAttribute('aria-label',groups[dir].length+' pages');f.append(name,count);group.append(f);
+    const count=document.createElement('span');count.className='folder-count';count.textContent=groups[dir].length;count.setAttribute('aria-label',groups[dir].length+' files');f.append(name,count);group.append(f);
     group.ontoggle=()=>{if(group.isConnected){if(group.open)collapsedFolders.delete(dir);else collapsedFolders.add(dir);}};
     const accepts=e=>e.dataTransfer?.types.includes('application/x-omp-memory');
     f.ondragover=e=>{if(!accepts(e))return;e.preventDefault();e.dataTransfer.dropEffect='move';f.classList.add('drop-target');};
     f.ondragleave=()=>f.classList.remove('drop-target');
     f.ondrop=async e=>{if(!accepts(e))return;e.preventDefault();f.classList.remove('drop-target');try{const item=JSON.parse(e.dataTransfer.getData('application/x-omp-memory'));await moveToFolder(item.identifier,item.path,dir);}catch(error){moveStatus(error.message,true);}};
     el.appendChild(group);
-    if(!groups[dir].length){const empty=document.createElement('div');empty.className='folder-empty';empty.textContent='No pages yet';group.append(empty);}
+    if(!groups[dir].length){const empty=document.createElement('div');empty.className='folder-empty';empty.textContent='No files yet';group.append(empty);}
     for(const p of groups[dir].sort((a,b)=>titleOf(a).localeCompare(titleOf(b)))){
       const a=document.createElement('a');a.href='#';a.textContent=titleOf(p);a.title=p.path;a.dataset.path=p.path;a.draggable=true;
       if(current===p.path){a.className='active';a.setAttribute('aria-current','page');}
@@ -151,7 +166,7 @@ function renderTree() {
 }
 async function moveToFolder(identifier,source,folder){
   if(!canLeaveEditor())return;
-  const latest=pages.find(p=>p.meta.identifier===identifier);if(!latest)throw new Error('This note is no longer available. Refresh the page list before moving it.');source=latest.path;
+  const latest=pages.find(p=>p.meta.identifier===identifier);if(!latest)throw new Error('This note is no longer available. Refresh the file list before moving it.');source=latest.path;
   const path=(folder?folder+'/':'')+source.split('/').pop();
   if(path===source){dragging=null;return;}
   moving=true;setBusy(true);moveStatus('Moving…');
@@ -160,12 +175,12 @@ async function moveToFolder(identifier,source,folder){
   finally{moving=false;dragging=null;setBusy(false);renderTree();renderPage();document.getElementById('move-folder')?.focus();}
 }
 async function moveCurrent(){const p=pages.find(p=>p.path===current);if(!p)return;try{await moveToFolder(p.meta.identifier,p.path,document.getElementById('move-folder').value);}catch(error){moveStatus(error.message,true);}}
-async function newFolder(){if(!canLeaveEditor())return;const folder=prompt('Folder name, for example team/preferences');if(!folder?.trim())return;setBusy(true);try{const result=await request('api/folder',{method:'POST',body:JSON.stringify({folder:folder.trim()})});collapsedFolders.delete(result.folder);await poll(true);moveStatus('Folder created: '+result.folder+'. Use Folder → Move to put a page here.');}catch(error){moveStatus('Could not create folder: '+error.message,true);}finally{setBusy(false);renderTree();renderPage();}}
+async function newFolder(){if(!canLeaveEditor())return;const folder=prompt('Folder name, for example team/preferences');if(!folder?.trim())return;setBusy(true);try{const result=await request('api/folder',{method:'POST',body:JSON.stringify({folder:folder.trim()})});collapsedFolders.delete(result.folder);await poll(true);moveStatus('Folder created: '+result.folder+'. Use Folder → Move to put a file here.');}catch(error){moveStatus('Could not create folder: '+error.message,true);}finally{setBusy(false);renderTree();renderPage();}}
 
 function renderPage() {
   const main = document.getElementById("main");
   const p = editing ? editSnapshot : pages.find(x => x.path === current);
-  if (!p) { main.innerHTML = `<div class="empty">${pages.length ? "Choose a page on the left." : "This wiki is empty. Drop markdown files into the folder, or create a page."}</div>`; return; }
+  if (!p) { main.innerHTML = `<div class="empty">${pages.length ? "Choose a file on the left." : "No files yet. Drop markdown files into the folder, or create a new file."}</div>`; return; }
   const m = p.meta || {};
   const expired = m.valid_until && new Date(m.valid_until) <= new Date();
   const ver = m.version && typeof m.version === "object" ? m.version.value : m.version;
@@ -183,9 +198,9 @@ function renderPage() {
       <div class="field"><label for="ed-title">Title</label><input id="ed-title" value="${esc(titleOf(p))}"></div>
       <div class="field"><label for="ed-tags">Tags, comma separated</label><input id="ed-tags" value="${esc((m.tags || []).join(", "))}"></div>
       <div class="editor-note">Editing ${esc(p.path)} · Markdown links: [Page title](folder/page.md)</div>
-      <label for="ed">Page content</label><textarea id="ed" aria-describedby="editor-status">${esc(p.body)}</textarea>
-      <div class="toolbar"><button id="save-button" onclick="save()">Save page</button><button onclick="cancelEdit()">Cancel editing</button></div>
-      <div id="editor-status" class="editor-status" role="status" aria-live="polite">Draft stays open while the wiki updates.</div>`;
+      <label for="ed">File content</label><textarea id="ed" aria-describedby="editor-status">${esc(p.body)}</textarea>
+      <div class="toolbar"><button id="save-button" onclick="save()">Save file</button><button onclick="cancelEdit()">Cancel editing</button></div>
+      <div id="editor-status" class="editor-status" role="status" aria-live="polite">Draft stays open while the files update.</div>`;
     return;
   }
   main.innerHTML = `<h1 class="title">${esc(titleOf(p))}</h1>
@@ -193,7 +208,7 @@ function renderPage() {
     <dl class="infobox">${rows.join("")}</dl>
     <article class="${expired ? "expired" : ""}">${md(p.body)}</article>
     <div class="backlinks">What links here: ${back.length ? back.map(q => `<a class="wl" href="#" data-path="${esc(q.path)}">${esc(titleOf(q))}</a>`).join(", ") : "nothing yet"}</div>
-    <div class="toolbar"><button onclick="beginEdit()">Edit</button><button class="danger" onclick="del()">Delete page</button><div class="move-controls"><label for="move-folder">Folder</label><select id="move-folder" aria-describedby="move-help" onchange="updateMoveButton()">${folderNames().map(dir=>`<option value="${esc(dir)}" ${dir===(p.path.includes('/')?p.path.slice(0,p.path.lastIndexOf('/')):'')?'selected':''}>${esc(dir||'Top level')}</option>`).join('')}</select><button id="move-button" onclick="moveCurrent()">Move</button><div class="move-help" id="move-help">Moves keep the same identifier and update every system.</div></div></div>`;
+    <div class="toolbar"><button onclick="beginEdit()">Edit</button>${EMBEDDED?`<button class="omp-format" data-omp-format="${esc(m.identifier||p.path)}">View OMP format</button>`:""}<button class="danger" onclick="del()">Delete file</button><div class="move-controls"><label for="move-folder">Folder</label><select id="move-folder" aria-describedby="move-help" onchange="updateMoveButton()">${folderNames().map(dir=>`<option value="${esc(dir)}" ${dir===(p.path.includes('/')?p.path.slice(0,p.path.lastIndexOf('/')):'')?'selected':''}>${esc(dir||'Top level')}</option>`).join('')}</select><button id="move-button" onclick="moveCurrent()">Move</button><div class="move-help" id="move-help">Moves keep the same identifier and update every system.</div></div></div>`;
   updateMoveButton();
   main.querySelectorAll("a.wl[data-path]").forEach(a => a.onclick = e => { e.preventDefault(); open(a.dataset.path); });
   if (flashNext) { flashNext = false; const a = main.querySelector("article"), t = main.querySelector(".title"); for (const el of [a, t]) if (el) { el.classList.add("flash"); setTimeout(() => el.classList.remove("flash"), 2600); } }
@@ -206,41 +221,41 @@ async function save() {
   const tags = document.getElementById("ed-tags").value.split(",").map(t => t.trim()).filter(Boolean);
   setBusy(true);editorStatus('Saving…');
   try{
-    if(!await poll(true))throw new Error('Could not refresh the page before saving. Check the connection and retry.');
+    if(!await poll(true))throw new Error('Could not refresh the file before saving. Check the connection and retry.');
     const latest=pages.find(p=>p.meta.identifier===editSnapshot.meta.identifier);
-    if(!latest)throw new Error('This page was removed elsewhere. Copy your draft before cancelling, then create a new page.');
-    if(editContent(latest)!==editContent(editSnapshot))throw new Error('This page changed elsewhere. Copy your draft, then cancel editing to review the latest version before retrying.');
+    if(!latest)throw new Error('This file was removed elsewhere. Copy your draft before cancelling, then create a new file.');
+    if(editContent(latest)!==editContent(editSnapshot))throw new Error('This file changed elsewhere. Copy your draft, then cancel editing to review the latest version before retrying.');
     await request('api/page',{method:'POST',body:JSON.stringify({path:latest.path,body,title,tags,if_version:typeof latest.meta.version==='object'?latest.meta.version.value:latest.meta.version})});
     current=latest.path;editing=false;editSnapshot=null;flashNext=false;mutationEpoch++;
-    const refreshed=await poll(true);moveStatus(refreshed?'Page saved.':'Page saved. Refresh failed; the page list will retry automatically.',!refreshed);
+    const refreshed=await poll(true);moveStatus(refreshed?'File saved.':'File saved. Refresh failed; the file list will retry automatically.',!refreshed);
   }catch(error){editorStatus('Could not save: '+error.message+' Your draft is still here.',true);}
   finally{setBusy(false);if(!editing){renderTree();renderPage();}}
 }
 async function del() {
   if(!canLeaveEditor())return;
   const path=current;setBusy(true);
-  try{await request('api/page?path='+encodeURIComponent(path),{method:'DELETE'});current=null;flashNext=false;mutationEpoch++;await poll(true);moveStatus('Page deleted.');}
-  catch(error){moveStatus('Could not delete this page: '+error.message,true);}
+  try{await request('api/page?path='+encodeURIComponent(path),{method:'DELETE'});current=null;flashNext=false;mutationEpoch++;await poll(true);moveStatus('File deleted.');}
+  catch(error){moveStatus('Could not delete this file: '+error.message,true);}
   finally{setBusy(false);renderTree();renderPage();}
 }
 async function newPage() {
   if(!canLeaveEditor())return;
-  const title = prompt("Page title");
+  const title = prompt("Title");
   if (!title?.trim()) return;
   setBusy(true);
-  try{const r=await request('api/new',{method:'POST',body:JSON.stringify({title:title.trim(),body:''})});current=r.path;flashNext=false;mutationEpoch++;await poll(true);moveStatus('Page created.');}
-  catch(error){moveStatus('Could not create page: '+error.message,true);}
+  try{const r=await request('api/new',{method:'POST',body:JSON.stringify({title:title.trim(),body:''})});current=r.path;flashNext=false;mutationEpoch++;await poll(true);moveStatus('File created.');}
+  catch(error){moveStatus('Could not create file: '+error.message,true);}
   finally{setBusy(false);renderTree();renderPage();}
   if(pages.some(p=>p.path===current)&&current&&!document.getElementById('move-status').classList.contains('error'))beginEdit();
 }
 async function poll(force) {
   const sequence=++pollSequence,epoch=mutationEpoch;
   try {
-    const response=await fetch('api/pages');if(!response.ok)throw new Error('Could not load pages ('+response.status+').');const txt=await response.text();
+    const response=await fetch('api/pages');if(!response.ok)throw new Error('Could not load files ('+response.status+').');const txt=await response.text();
     if(epoch!==mutationEpoch||sequence<appliedSequence)return false;
     if (!force && txt === lastJson) {appliedSequence=sequence;return true;}
     if(dragging&&!force)return false;
-    const data=JSON.parse(txt);if(!Array.isArray(data.pages))throw new Error('Invalid page list.');
+    const data=JSON.parse(txt);if(!Array.isArray(data.pages))throw new Error('Invalid file list.');
     const prev = pages,selected=prev.find(p=>p.path===current);appliedSequence=sequence;lastJson=txt;pages=data.pages;folders=data.folders||[];const silent=new Set(data.silent_identifiers||[]);
     // Follow identity through path changes without replacing an open draft.
     const selectedId=editing?editSnapshot?.meta.identifier:selected?.meta.identifier;
@@ -251,9 +266,9 @@ async function poll(force) {
     }
     if(!editing){if (current && !pages.some(p => p.path === current)) current = null;if (!current && pages.length) current = pages[0].path;}
     renderTree(); if (!editing&&!busy) renderPage();
-    if(editing&&!busy){const latest=pages.find(p=>p.meta.identifier===editSnapshot.meta.identifier);if(!latest||editContent(latest)!==editContent(editSnapshot))editorStatus('This page changed elsewhere. Your draft is preserved; copy it before cancelling to review the latest version.',true);}
+    if(editing&&!busy){const latest=pages.find(p=>p.meta.identifier===editSnapshot.meta.identifier);if(!latest||editContent(latest)!==editContent(editSnapshot))editorStatus('This file changed elsewhere. Your draft is preserved; copy it before cancelling to review the latest version.',true);}
     return true;
-  } catch (e) { if(!lastJson)moveStatus('Could not load pages. Check the connection; retrying automatically.',true);return false; }
+  } catch (e) { if(!lastJson)moveStatus('Could not load files. Check the connection; retrying automatically.',true);return false; }
 }
 addEventListener('message',e=>{if(e.source!==parent||e.data?.type!=='omp-focus'||editing||busy||moving)return;const page=pages.find(p=>p.path===e.data.path||p.meta.identifier===e.data.identifier);if(page){flashNext=e.data.animate!==false;open(page.path);}});
 poll(true); setInterval(poll, 600);

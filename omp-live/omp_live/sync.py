@@ -205,9 +205,13 @@ class Sync:
                 continue
 
             new = dict(record)
+            # A revision that only adds or refreshes the vector (or other bookkeeping) is not an edit:
+            # it keeps the version, so one change never shows up as two (§6.6 metadata-only variants).
+            quiet = existing is not None and _shape(_plain(new)) == _shape(_plain(existing))
             if existing is not None:
                 new["version"] = dict(existing.get("version") or {"value": 0, "comparator": "integer"})
-                bump_version(new)
+                if not quiet:
+                    bump_version(new)
                 contribution = "edited"
                 # provenance is append-only: keep contributors the system's copy never saw (§4.2)
                 merged = list(new.get("provenance") or [])
@@ -227,16 +231,15 @@ class Sync:
                 if "version" not in new:
                     new["version"] = {"value": 1, "comparator": "integer"}
                 contribution = "imported"
-            new["updated_at"] = now_iso()
+            new["updated_at"] = existing.get("updated_at", now_iso()) if quiet else now_iso()
             # A system is credited once per kind of contribution; repeating it on every edit adds noise, not information.
             if not any(p.get("id") == f"system:{name}" and p.get("contribution") == contribution
                        for p in new.get("provenance") or [] if isinstance(p, dict)):
                 add_contributor(new, f"system:{name}", "system", contribution, at=new["updated_at"])
             stored = self.export.put(new)
             self.export.receipt(name, identifier, "accepted",
-                                f"{contribution}; version {stored['version']['value']}")
-            # A revision that only adds or refreshes the vector is bookkeeping, not news: don't animate it.
-            quiet = existing is not None and _shape(_plain(stored)) == _shape(_plain(existing))
+                                f"{'refreshed bookkeeping' if quiet else contribution}; version {stored['version']['value']}")
+            # Bookkeeping is not news: don't animate it.
             previous, self._animate = self._animate, self._animate and not quiet
             self.event("exported", name, identifier, title=stored.get("title"), path=stored.get("path"),
                        version=stored["version"]["value"], new=existing is None,

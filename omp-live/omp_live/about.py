@@ -96,12 +96,13 @@ TOPICS: dict[str, str] = {
     ),
 
     "this-demo": (
-        "omp-live shows OMP as the only thing moving between three unrelated systems and an agent: a Markdown wiki, "
-        "a graph store and a full-text/embedding search index. The OMP export folder is the bus; there is no hub. Each "
+        "omp-live shows OMP as the only thing moving between three unrelated systems and an agent: a file system of "
+        "Markdown files, a knowledge graph and a full-text/embedding search index. The OMP export folder is the bus; there is no hub. Each "
         "system implements one import and one export, and the sync turns a change in any system into a new revision "
-        "that every other system imports, with provenance, receipts, tombstones and conflicts as above. The memories "
-        "are fictional (the Cloudberry Observatory and its night observer, Juniper Hale). This MCP server writes "
-        "through the search index; changes reach the wiki and graph through the same OMP export."
+        "that every other system imports, with provenance, receipts, tombstones and conflicts as above. The seeded "
+        "memories restate public AI Disclosures Project material, each with its source URL; the demo agent is "
+        "called Ilan's agent. This MCP server writes through the search index; changes reach the file system and "
+        "knowledge graph through the same OMP export."
     ),
 }
 

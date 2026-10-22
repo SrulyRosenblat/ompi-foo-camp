@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Trace a memory</title>
+<title>Compare one memory</title>
 <style>
   :root { --stone:#d9d5cc; --stone-2:#cfcac0; --frame:#f4f2ed; --ink:#232019; --ink-2:#6a655b; --edge:#b3ada1; --ok:#2f7d4f; --warn:#b2641a; --bad:#b3362f; --info:#2a5d9f; --flash:#fff3b0; }
   * { box-sizing: border-box; }
@@ -89,7 +89,7 @@
   td.drop { color: var(--ink-2); font-style: italic; }
   td.keep { color: var(--ok); }
   td.shape { color: var(--info); }
-  .rc { padding: 4px 12px; border-bottom: 1px solid #ebe7df; font-size: 12px; display: grid; grid-template-columns: 56px 56px 1fr; gap: 8px; }
+  .rc { padding: 4px 12px; border-bottom: 1px solid #ebe7df; font-size: 12px; display: grid; grid-template-columns: 56px 110px 1fr; gap: 8px; }
   .rc .t { color: var(--ink-2); font-family: ui-monospace, Menlo, monospace; }
   .rc i { display: inline-block; width: 8px; height: 8px; border-radius: 50%; margin-right: 5px; }
   .o-accepted i, .o-transformed i, .o-resolved i { background: var(--ok); } .o-rejected i, .o-forgotten i { background: var(--bad); } .o-conflict i { background: var(--warn); } .o-omitted i { background: var(--edge); }
@@ -97,48 +97,59 @@
 </style>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,600;1,9..144,400&family=Hanken+Grotesk:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap">
 <style id="signal-theme">
-  /* ---- signal theme: same tokens as animations/site-conversion-options.html ---- */
-  :root { --stone:#0b0c0f; --stone-2:#161920; --frame:#12141a; --ink:#ece8e0; --ink-2:#8f95a0; --edge:#2a2f39;
-          --ok:#6fdc9b; --warn:#f3b54a; --bad:#ff6b6b; --info:#8fc3ff; --flash:rgba(255,106,69,.3);
-          --wiki:#f3b54a; --omp:#ff6a45; --graph:#4fd6e0; --search:#ff8db4; --agent:#8fc3ff;
+  /* ---- warm paper theme: same tokens as the dashboard (index.html) ---- */
+  :root { color-scheme: light; --stone:#fffdf8; --stone-2:#f7f2e8; --frame:#fffdf8; --ink:#221f1a; --ink-2:#5e584d; --edge:#e2d9c7;
+          --ok:#2c8552; --warn:#a0620f; --bad:#c0392f; --info:#2d63b0; --flash:rgba(212,71,30,.16);
+          --wiki:#b26f12; --omp:#d4471e; --graph:#0d8592; --search:#bf3d76; --agent:#2d63b0;
           --ui:"Hanken Grotesk","Avenir Next","Segoe UI",sans-serif; --display:"Fraunces","Iowan Old Style",Georgia,serif; --mono:"JetBrains Mono",ui-monospace,Menlo,monospace; }
-  body { font-family: var(--ui); -webkit-font-smoothing: antialiased;
-         background: radial-gradient(900px 420px at 90% -10%, rgba(255,106,69,.10), transparent 60%), radial-gradient(rgba(255,255,255,.04) 1px, transparent 1.2px) 0 0/18px 18px, var(--stone); }
+  body { font-family: var(--ui); -webkit-font-smoothing: antialiased; background: var(--stone); grid-template-rows: 54px 1fr; }
+  header { padding: 0 22px; }
   header h1 { font-family: var(--display); font-weight: 600; letter-spacing: -.01em; }
   header h1 small { font-family: var(--ui); }
   header .origin, header .n { font-family: var(--mono); }
-  .card, .pane, .stage { border-color: var(--edge) !important; border-radius: 10px !important; box-shadow: 0 16px 34px -26px #000; }
-  .card h2, .pane .bar, .stage .bar { background: #161920 !important; border-color: var(--edge) !important; }
-  td, th, .row, .rc, .side .c { border-color: rgba(255,255,255,.05) !important; }
+  main { padding: 0 22px 22px; gap: 14px; }
+  .card, .pane, .stage, .parts { border-color: var(--edge) !important; border-radius: 12px !important; box-shadow: 0 12px 28px -24px #5a3c0f88; }
+  .card h2, .pane .bar, .stage .bar, .phead { background: var(--stone-2) !important; border-color: var(--edge) !important; }
+  td, th, .row, .rc, .side .c, .prow { border-color: #efe8da !important; }
+  .prow > summary:hover, .prow[open] > summary { background: #f7f2e8; }
+  .jstep { background: #fff; border-color: var(--edge); border-radius: 12px; padding: 9px 12px; }
   td.t, .rc .t, td.f, td.id { font-family: var(--mono) !important; }
-  button { background: #1c2028; border-color: #353b47; color: var(--ink); border-radius: 999px; }
-  button:hover { border-color: var(--omp); color: #fff; }
-  .o-accepted i, .o-transformed i, .o-resolved i { box-shadow: 0 0 8px var(--ok); }
-  .o-rejected i, .o-forgotten i { box-shadow: 0 0 8px var(--bad); }
-  ::selection { background: rgba(255,106,69,.35); }
-  ::-webkit-scrollbar { width: 8px; height: 8px } ::-webkit-scrollbar-thumb { background: #2a2f39; border-radius: 8px } ::-webkit-scrollbar-track { background: transparent }
+  button { background: #fff; border-color: #d3c8b2; color: var(--ink); border-radius: 999px; }
+  button:hover { border-color: var(--omp); }
+  ::selection { background: rgba(212,71,30,.2); }
+  ::-webkit-scrollbar { width: 8px; height: 8px } ::-webkit-scrollbar-thumb { background: #d3c8b2; border-radius: 8px } ::-webkit-scrollbar-track { background: transparent }
 
-  .k { color: #8fc3ff; } .s { color: #e9d9ae; } .num { color: #ffb86b; } .c { color: #6b717c; } .fm { color: #f5d08e; }
-  .flow > .stage:nth-child(1) { border-top: 2px solid var(--wiki) !important; }
-  .flow > .stage:nth-child(3) { border-top: 2px solid var(--omp) !important; }
-  .flow > .stage:nth-child(5) { border-top: 2px solid var(--graph) !important; }
-  .flow > .stage:nth-child(7) { border-top: 2px solid var(--search) !important; }
-  .stage { background: #12141a; }
+  .k { color: #2d63b0; } .s { color: #7a4b0c; } .num { color: #a3462b; } .c { color: #8a8273; } .fm { color: #6a52c4; }
+  .flow > .stage:nth-child(1) { border-top: 3px solid var(--wiki) !important; }
+  .flow > .stage:nth-child(3) { border-top: 3px solid var(--omp) !important; }
+  .flow > .stage:nth-child(5) { border-top: 3px solid var(--graph) !important; }
+  .flow > .stage:nth-child(7) { border-top: 3px solid var(--search) !important; }
+  .stage { background: #fff; }
   .stage pre { font-family: var(--mono); color: var(--ink); }
-  .arrow svg { stroke: #4a505c; } .arrow { font-family: var(--mono); }
-  td.keep { color: #6fdc9b; } td.shape { color: #ac9dff; } td.drop { color: #666c77; }
+  .arrow svg { stroke: #a89f8d; } .arrow { font-family: var(--mono); }
+  .mark.shape { color: #6a52c4; } .mark.drop { color: #8a8273; }
+  td.keep { color: var(--ok); } td.shape { color: #6a52c4; } td.drop { color: #6f685c; }
   .edge-row .rel { color: var(--graph); }
-  header select { background: #1c2028; color: var(--ink); border-color: #353b47; }
+  header select { background: #fff; color: var(--ink); border-color: #d3c8b2; border-radius: 10px; }
   header a { color: var(--omp); }
-  th { background: #12141a; }
+  th { background: #fffdf8; }
+  .phead, .prow > summary { grid-template-columns: 96px minmax(0,1fr) repeat(4, 92px); }
+  .phead { height: auto; min-height: 36px; padding-top: 4px; padding-bottom: 4px; }
+  .phead .sys { white-space: normal; line-height: 1.2; }
+  header h1, header a, header button { white-space: nowrap; flex: none; }
+  header .status { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  header select { min-width: 0; flex: 0 1 auto; }
+  .detail { padding-left: 116px; }
+  @media (max-width: 760px) { .phead, .prow > summary { grid-template-columns: 80px minmax(0,1fr) repeat(4, 58px); } .phead .sys { font-size: 10px; } }
 </style>
 </head>
 <body>
 <header>
-  <h1>Trace a memory</h1>
+  <h1>Compare one memory</h1>
   <select id="pick"></select>
+  <button id="omp-format" hidden title="Show this memory as an OMP record">View OMP format</button>
   <span class="status" id="status"></span>
-  <a href="/" id="back">Back to the four systems</a>
+  <a href="/" id="back">Back to the dashboard</a>
   <button onclick="fs()" id="fsb" title="Full screen (F)">Full screen</button>
 </header>
 <main>
@@ -150,17 +161,20 @@
   <details class="raw"><summary>Show every field and the raw files each system stores</summary>
   <div class="card fields"><h2>Every field in the record, and what each system does with it</h2><table id="fields"></table></div>
   <div class="flow">
-    <div class="stage"><div class="bar"><b>Wiki</b> the markdown file <span class="n" id="n-wiki"></span></div><pre id="wiki"></pre></div>
+    <div class="stage"><div class="bar"><b>File system</b> the markdown file <span class="n" id="n-wiki"></span></div><pre id="wiki"></pre></div>
     <div class="arrow both"><svg viewBox="0 0 24 24"><path d="M4 12h16m-6-6 6 6-6 6"/></svg>export<br>import<svg viewBox="0 0 24 24"><path d="M4 12h16m-6-6 6 6-6 6"/></svg></div>
     <div class="stage"><div class="bar"><b>OMP export</b> the interchange record <span class="n" id="n-export"></span></div><pre id="export"></pre></div>
     <div class="arrow both"><svg viewBox="0 0 24 24"><path d="M4 12h16m-6-6 6 6-6 6"/></svg>import<br>export<svg viewBox="0 0 24 24"><path d="M4 12h16m-6-6 6 6-6 6"/></svg></div>
-    <div class="stage"><div class="bar"><b>Graph</b> node and edges <span class="n" id="n-graph"></span></div><pre id="graph"></pre></div>
+    <div class="stage"><div class="bar"><b>Knowledge graph</b> node and edges <span class="n" id="n-graph"></span></div><pre id="graph"></pre></div>
     <div class="arrow both"><svg viewBox="0 0 24 24"><path d="M4 12h16m-6-6 6 6-6 6"/></svg>import<br>export<svg viewBox="0 0 24 24"><path d="M4 12h16m-6-6 6 6-6 6"/></svg></div>
-    <div class="stage"><div class="bar"><b>Search</b> the indexed row <span class="n" id="n-search"></span></div><pre id="search"></pre></div>
+    <div class="stage"><div class="bar"><b>Search index</b> the indexed row <span class="n" id="n-search"></span></div><pre id="search"></pre></div>
   </div>
   </details>
 </main>
 <script>
+// Inside the dashboard, open the picked memory's OMP record in the format sheet.
+if (window.parent !== window) { const b = document.getElementById("omp-format"); b.hidden = false; b.onclick = () => { const id = document.getElementById("pick").value; if (id) parent.postMessage({ type: "omp-format", identifier: id }, "*"); }; }
+
 const esc = s => String(s).replace(/[&<>"]/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]));
 const $ = id => document.getElementById(id);
 let animateTrace=true;
@@ -200,7 +214,7 @@ function frontMatter(text) {
 let titles = {};
 const name = t => titles[t] || t.split("/").pop().replace(/\.md$/, "");
 const clip = (s, n) => { s = String(s ?? ""); return s.length > n ? s.slice(0, n) + "…" : s; };
-const SYS = [["wiki", "Wiki", "--wiki"], ["export", "OMP", "--omp"], ["graph", "Graph", "--graph"], ["search", "Search", "--search"]];
+const SYS = [["wiki", "File system", "--wiki"], ["export", "OMP", "--omp"], ["graph", "Knowledge graph", "--graph"], ["search", "Search index", "--search"]];
 const lastRow = {}; let lastJourney = "";
 // Markdown → readable text: drop the repeated title heading, keep link names, lose the syntax.
 function readable(md, title, path) {
@@ -297,12 +311,12 @@ async function load() {
   $("status").textContent = d.tombstone ? `forgotten ${d.tombstone.forgotten_at.slice(11, 19)} by ${d.tombstone.by}` : d.conflicts.length ? `${d.conflicts.length + 1} versions, unresolved` : d.export ? `version ${(d.export.version || {}).value ?? "–"}, checksum ${d.export.checksum.slice(7, 19)}…` : "not in the export folder";
   set("wiki", d.wiki ? hiMd(d.wiki.text) : `<div class="missing">${d.tombstone ? "File removed by the forget." : "No file holds this identifier."}</div>`, d.wiki ? d.wiki.path : "");
   set("export", d.export ? hiJson(d.export) : `<div class="missing">${d.tombstone ? "Content erased. The tombstone keeps when, who and why, never the text." : "Nothing in omp-export/memories."}</div>`, d.export ? `memories/${d.export.identifier}.json` : "");
-  set("graph", d.graph ? `<div class="row"><span class="l">node</span><span>${esc(d.graph.node.id)}</span></div><div class="row"><span class="l">kind</span><span>${esc(d.graph.node.kind)}</span></div><div class="row"><span class="l">label</span><span>${esc(d.graph.node.label)}</span></div><div class="row"><span class="l">edges</span><span>${d.graph.edges.map(e => `<div class="edge-row">${e.src === id ? "→" : "←"} <span class="rel">${esc(e.rel)}</span> ${esc(e.src === id ? e.dst : e.src)} <span class="carrier">${esc(e.carrier)}</span></div>`).join("") || "none"}</span></div><div class="row"><span class="l">record</span><span class="c">the full interchange record, kept opaque</span></div>` : `<div class="missing">No node. Nothing in the graph points here either.</div>`, d.graph ? `${d.graph.edges.length} edges` : "");
+  set("graph", d.graph ? `<div class="row"><span class="l">node</span><span>${esc(d.graph.node.id)}</span></div><div class="row"><span class="l">kind</span><span>${esc(d.graph.node.kind)}</span></div><div class="row"><span class="l">label</span><span>${esc(d.graph.node.label)}</span></div><div class="row"><span class="l">edges</span><span>${d.graph.edges.map(e => `<div class="edge-row">${e.src === id ? "→" : "←"} <span class="rel">${esc(e.rel)}</span> ${esc(e.src === id ? e.dst : e.src)} <span class="carrier">${esc(e.carrier)}</span></div>`).join("") || "none"}</span></div><div class="row"><span class="l">record</span><span class="c">the full interchange record, kept opaque</span></div>` : `<div class="missing">No node. Nothing in the knowledge graph points here either.</div>`, d.graph ? `${d.graph.edges.length} edges` : "");
   set("search", d.search ? hiJson(d.search) : `<div class="missing">No row in the index.</div>`, d.search ? "docs + docs_fts" : "");
   renderJourney(d);
   renderParts(d);
-  $("fields").innerHTML = `<tr><th>Field</th><th>Wiki</th><th>OMP export</th><th>Graph</th><th>Search</th></tr>` + d.fields.map(f => `<tr><td class="f">${esc(f.field)}</td><td class="${classify(f.wiki)}">${esc(f.wiki)}</td><td>${esc(f.export)}</td><td class="${classify(f.graph)}">${esc(f.graph)}</td><td class="${classify(f.search)}">${esc(f.search)}</td></tr>`).join("");
-  $("receipts").innerHTML = d.receipts.slice().reverse().map(r => `<div class="rc o-${esc(r.outcome)}"><span class="t">${esc(r.at).slice(11, 19)}</span><span>${esc(r.system)}</span><span><i></i>${esc(r.outcome)}${r.reason ? `: <span class="c">${esc(r.reason)}</span>` : ""}</span></div>`).join("") || `<div class="empty">No receipts yet.</div>`;
+  $("fields").innerHTML = `<tr><th>Field</th><th>File system</th><th>OMP export</th><th>Knowledge graph</th><th>Search index</th></tr>` + d.fields.map(f => `<tr><td class="f">${esc(f.field)}</td><td class="${classify(f.wiki)}">${esc(f.wiki)}</td><td>${esc(f.export)}</td><td class="${classify(f.graph)}">${esc(f.graph)}</td><td class="${classify(f.search)}">${esc(f.search)}</td></tr>`).join("");
+  $("receipts").innerHTML = d.receipts.slice().reverse().map(r => `<div class="rc o-${esc(r.outcome)}"><span class="t">${esc(r.at).slice(11, 19)}</span><span>${esc(({ wiki: "File system", graph: "Knowledge graph", search: "Search index", export: "OMP", agent: "Ilan’s agent" })[r.system] || r.system)}</span><span><i></i>${esc(r.outcome)}${r.reason ? `: <span class="c">${esc(String(r.reason).replace(/\b(wiki|graph|search)\b(?! index| system)/g, k => ({ wiki: "file system", graph: "knowledge graph", search: "search index" })[k]))}</span>` : ""}</span></div>`).join("") || `<div class="empty">No receipts yet.</div>`;
 }
 async function list() {
   const txt = await (await fetch("/api/memories")).text();
