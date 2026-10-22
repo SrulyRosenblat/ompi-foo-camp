@@ -1,0 +1,171 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Graph</title>
+<style>
+:root{color-scheme:dark;--bg:#101216;--panel:#181b21;--fg:#e9ecf1;--dim:#838b98;--line:#2b3039;--cyan:#4fd6e0}
+*{box-sizing:border-box}html,body{height:100%;margin:0}body{background:var(--bg);color:var(--fg);font:12px/1.5 "Avenir Next","Segoe UI",sans-serif;overflow:hidden;display:flex;flex-direction:column}
+header{height:44px;flex-shrink:0;display:flex;align-items:center;justify-content:space-between;gap:12px;padding:0 16px;color:var(--dim)}.controls{display:flex;gap:8px;align-items:center}button,select,input,textarea{font:inherit;color:var(--fg);background:var(--panel);border:1px solid var(--line);border-radius:5px}button{padding:4px 9px;cursor:pointer}button:hover{border-color:var(--cyan)}button:focus-visible,select:focus-visible,input:focus-visible,textarea:focus-visible,summary:focus-visible{outline:2px solid var(--cyan);outline-offset:3px}select{padding:4px 6px;max-width:170px}.mode{background:transparent;color:var(--dim)}.mode[aria-pressed=true]{color:var(--cyan);border-color:#356068}
+#canvas{flex:1;min-height:0;overflow:auto;scrollbar-width:thin;scrollbar-color:var(--line) transparent}#stage{display:block;width:100%;touch-action:pan-y}.node{touch-action:none}.node .hit{fill:transparent;stroke:none}.node-trigger:focus-visible .hit{stroke:var(--cyan);stroke-width:1}.edge,.edge-label,.node text{pointer-events:none}.edge{fill:none;stroke:var(--cyan);stroke-opacity:.42;stroke-width:1.2}.edge.inline{stroke-opacity:.24}.edge-label{fill:var(--dim);font:10px ui-monospace,Menlo,monospace;paint-order:stroke;stroke:var(--bg);stroke-width:7px;stroke-linejoin:round;text-anchor:middle}.node{cursor:pointer;outline:none}.node circle.core{fill:#62aeb8;stroke:#8be0e6;stroke-width:1.4}.node.focus circle.core{fill:var(--cyan);stroke:var(--cyan);filter:drop-shadow(0 0 7px #4fd6e033)}.node.ghost circle.core{fill:var(--panel);stroke-dasharray:3 3;stroke:#8c97a5}.node text{paint-order:stroke;stroke:var(--bg);stroke-width:4px;stroke-linejoin:round;fill:#aeb6c2;text-anchor:middle;font-size:12px}.node.focus text{fill:var(--fg);font-size:14px;font-weight:600}.node:hover circle.core,.node-trigger:focus-visible circle.core{stroke:var(--cyan)}.node .pulse{fill:none;stroke:var(--cyan);opacity:0;animation:pulse 1.5s ease-out;transform-box:fill-box;transform-origin:center}@keyframes pulse{0%{opacity:.7;transform:scale(1)}100%{opacity:0;transform:scale(2.4)}}
+footer{height:32px;flex-shrink:0;gap:8px;padding:0 16px;color:#69727f;display:flex;align-items:center;justify-content:space-between;font-size:10.5px}footer>span{min-width:0}#notice{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.empty{fill:var(--dim);text-anchor:middle;font-size:13px}aside{position:absolute;right:12px;bottom:36px;width:min(330px,calc(100% - 24px));max-height:calc(100% - 92px);overflow:auto;background:#181b21f7;border:1px solid var(--line);border-radius:9px;padding:14px;box-shadow:0 12px 35px #0005}aside[hidden]{display:none}aside h2{overflow-wrap:anywhere;font-size:15px;line-height:1.4;margin:0 25px 6px 0}aside .close{position:absolute;right:8px;top:8px;background:none;border:0;color:var(--dim);font-size:17px;padding:0 5px}.meta{color:var(--dim);font-size:10.5px;overflow-wrap:anywhere}.body{white-space:pre-wrap;font-size:12px;color:#b7bec9;max-height:130px;overflow:auto;margin:12px 0}.actions{display:flex;gap:6px;margin-top:12px}details{margin-top:12px;border-top:1px solid var(--line);padding-top:8px}summary{cursor:pointer;color:var(--dim);font-size:11px}.link{display:flex;align-items:center;gap:6px;justify-content:space-between;padding:5px 0;color:#aeb6c2;font-size:11px}.rel{color:var(--cyan);font:10px ui-monospace,monospace}.link>span{min-width:0;overflow-wrap:anywhere}.link-target{padding:0;background:none;border:0;color:inherit;text-align:left}.link-target:hover{color:var(--cyan)}.remove{min-width:26px;min-height:26px;padding:0 5px;color:var(--dim)}.form{display:grid;gap:8px;margin-top:10px}.form label{display:grid;gap:3px;color:var(--dim);font-size:11px}.form input,.form textarea,.form select{padding:5px 7px;width:100%;max-width:none}.form textarea{height:140px;resize:vertical}.form button{justify-self:start}.error{color:#f3b54a;font-size:11px}.preview{stroke:var(--cyan);stroke-dasharray:4 4;pointer-events:none}#notice{color:var(--cyan)}@media(prefers-reduced-motion:reduce){.node .pulse{animation:none}}@media(max-width:420px){header{padding:0 10px;gap:6px}.controls{gap:4px}header>span{white-space:nowrap}.controls{min-width:0}select{min-width:0;max-width:125px}button.mode{white-space:nowrap;padding:5px 7px}footer{padding:0 10px}footer .tip{display:none}.edge-label{font-size:9px}}
+.node-trigger{cursor:pointer;outline:none}.node .toggle-dot{fill:#1d343a;stroke:#6baeb7;stroke-width:1}.node .toggle-mark{fill:#bceff2;stroke:none;font:600 12px "Segoe UI",sans-serif;text-anchor:middle}.node.expanded .toggle-dot{fill:#4fd6e0}.node.expanded .toggle-mark{fill:#101216}.node-card{height:100%;display:flex;flex-direction:column;gap:8px;padding:10px 12px;border:1px solid #3a666d;border-radius:8px;background:#181e24;box-shadow:0 5px 12px #0003;color:#c6ced8;font:12px/1.5 "Avenir Next","Segoe UI",sans-serif;cursor:auto;overflow:hidden}.card-meta{color:#8b9aa9;font-size:10px;flex-shrink:0}.card-body{touch-action:pan-y;white-space:pre-wrap;overflow-wrap:anywhere;overflow:auto;min-height:0;flex:1;user-select:text;scrollbar-width:thin}.card-actions{display:flex;justify-content:flex-end;flex-shrink:0}.node-card button{font-size:11px;padding:3px 9px}.node.expanded circle.core{stroke:#d2fbff;stroke-width:2}
+</style>
+</head>
+<body>
+<header><span id="count">Memories</span><div class="controls"><select id="focus-picker" aria-label="Focus memory"></select><button class="mode" id="all" aria-pressed="false">All memories</button></div></header>
+<div id="canvas"><svg id="stage" aria-label="Memory graph" aria-describedby="graph-help" role="group"></svg></div>
+<aside id="panel" hidden aria-label="Memory details"></aside>
+<footer><span id="scope">Direct links</span><span id="notice" role="status"></span><span class="tip" id="graph-help">Click to expand · shift-drag to link</span></footer>
+<script>
+const $=id=>document.getElementById(id),stage=$('stage'),panel=$('panel'),canvas=$('canvas');
+const esc=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+let nodes=new Map(),edges=[],positions=new Map(),focus=null,selected=null,showAll=false,lastJson='',pendingFocus=null,editing=false,gesture=null,polling=false,expanded=new Set();
+const label=n=>(n?.label||n?.id||'').replace(/^title:/,'');
+const measure=document.createElement('canvas').getContext('2d');
+function fitLabel(s,width,isFocus=false){
+ measure.font=`${isFocus?'600 14':'12'}px "Avenir Next","Segoe UI",sans-serif`;
+ if(measure.measureText(s).width<=width)return s;
+ while(s&&measure.measureText(s+'…').width>width)s=s.slice(0,-1);
+ return s+'…';
+}
+const nodeElement=id=>[...stage.querySelectorAll('.node')].find(g=>g.dataset.id===id);
+const focusNode=id=>nodeElement(id)?.querySelector('.node-trigger')?.focus({preventScroll:true});
+const connectionCount=id=>new Set(edges.filter(e=>e.src===id||e.dst===id).map(e=>e.src===id?e.dst:e.src)).size;
+function closePanel(){const id=selected;selected=null;editing=false;renderPanel();focusNode(id);}
+function merge(data){
+ const next=new Map(data.nodes.filter(n=>['memory','ghost'].includes(n.kind)).map(n=>[n.id,n]));
+ edges=data.edges.filter(e=>e.carrier!=='provenance'&&next.has(e.src)&&next.has(e.dst));
+ const silent=new Set(data.silent_identifiers||[]),changed=[];
+ for(const [id,n] of next){const old=nodes.get(id);if(old&&JSON.stringify(old)!==JSON.stringify(n)&&!silent.has(id))changed.push(id);}
+ nodes=next;
+ for(const id of expanded)if(!nodes.has(id))expanded.delete(id);
+ if(pendingFocus&&nodes.has(pendingFocus)){focus=pendingFocus;pendingFocus=null;}
+ if(!nodes.has(focus)){const memories=[...nodes.values()].filter(n=>n.kind==='memory');const degree=id=>edges.filter(e=>e.src===id||e.dst===id).length;focus=memories.sort((a,b)=>degree(b.id)-degree(a.id))[0]?.id;}
+ if(selected&&!nodes.has(selected)){selected=null;editing=false;}
+ const picker=$('focus-picker'),options=[...nodes.values()].filter(n=>n.kind==='memory').map(n=>`<option value="${esc(n.id)}">${esc(label(n))}</option>`).join('');if(picker.innerHTML!==options)picker.innerHTML=options;picker.value=focus||'';
+ $('count').textContent=`${[...nodes.values()].filter(n=>n.kind==='memory').length} memories`;
+ render();if(!selected||(!editing&&!panel.contains(document.activeElement)&&!panel.querySelector('details[open]')))renderPanel();
+ for(const id of changed){const g=[...stage.querySelectorAll('.node')].find(g=>g.dataset.id===id);if(g){const ring=document.createElementNS('http://www.w3.org/2000/svg','circle');ring.setAttribute('r','17');ring.setAttribute('class','pulse');g.prepend(ring);}}
+}
+function visibleGraph(){
+ if(showAll)return {ns:[...nodes.values()],es:edges,sides:new Map()};
+ const ids=new Set([focus]),queue=[focus],sides=new Map();
+ while(queue.length){const id=queue.shift();if(id!==focus&&!expanded.has(id))continue;
+  for(const e of edges){if(e.src!==id&&e.dst!==id)continue;const other=e.src===id?e.dst:e.src;
+   if(!ids.has(other)){ids.add(other);sides.set(other,sides.get(id)||(e.src===id?'right':'left'));queue.push(other);}
+  }
+ }
+ return {ns:[...nodes.values()].filter(n=>ids.has(n.id)),es:edges.filter(e=>ids.has(e.src)&&ids.has(e.dst)),sides};
+}
+function toggleNode(id){
+ if(!nodes.has(id))return;
+ if(expanded.has(id))expanded.delete(id);else expanded.add(id);
+ positions.clear();
+ render();nodeElement(id)?.scrollIntoView({block:'nearest',inline:'nearest'});focusNode(id);
+}
+// A link must not pass over a node it does not connect, or it reads as a link to that node too.
+// Try the usual S-curve, then bow further to either side until the curve clears every other node.
+function routeEdge(a,b,others,mx){
+ const curve=(c1,c2)=>({c1,c2,d:`M${a.x},${a.y} C${c1.x},${c1.y} ${c2.x},${c2.y} ${b.x},${b.y}`});
+ const hits=({c1,c2})=>{let n=0;for(let i=1;i<40;i++){const t=i/40,u=1-t,x=u*u*u*a.x+3*u*u*t*c1.x+3*u*t*t*c2.x+t*t*t*b.x,y=u*u*u*a.y+3*u*u*t*c1.y+3*u*t*t*c2.y+t*t*t*b.y;for(const o of others)if(Math.abs(o.x-x)<18&&y>o.y-18&&y<o.y+36)n++;}return n;};
+ const dx=b.x-a.x,dy=b.y-a.y,len=Math.hypot(dx,dy)||1,nx=-dy/len,ny=dx/len;
+ const options=[curve({x:mx,y:a.y},{x:mx,y:b.y})];
+ for(const k of [28,-28,52,-52,80,-80,115,-115,150,-150,195,-195,250,-250,320,-320])options.push(curve({x:a.x+dx/3+nx*k*1.33,y:a.y+dy/3+ny*k*1.33},{x:a.x+2*dx/3+nx*k*1.33,y:a.y+2*dy/3+ny*k*1.33}));
+ let best=options[0],bestHits=Infinity;
+ for(const o of options){const h=hits(o);if(h===0)return o.d;if(h<bestHits){best=o;bestHits=h;}}
+ return best.d;
+}
+function render(){
+ const activeId=document.activeElement?.closest?.('.node')?.dataset.id;
+ const activeDetails=document.activeElement?.hasAttribute?.('data-details');
+ const scrolls=new Map([...stage.querySelectorAll('.card-body')].map(el=>[el.closest('.node').dataset.id,el.scrollTop]));
+ const {ns,es,sides}=visibleGraph(),w=Math.max(280,canvas.clientWidth),compact=w<560;
+ const hasExpansion=ns.some(n=>expanded.has(n.id)),cardHeight=Math.max(112,Math.min(172,canvas.clientHeight-86));
+ const fitColumns=Math.ceil(ns.length/Math.max(1,Math.floor((canvas.clientHeight-28)/62)));
+ const balancedColumns=Math.ceil(Math.sqrt(ns.length*w/Math.max(1,canvas.clientHeight)));
+ const overviewColumns=Math.max(1,Math.min(Math.floor(w/132),Math.max(fitColumns,balancedColumns)));
+ const points=new Map(),cols=showAll&&!hasExpansion?overviewColumns:Math.max(1,Math.floor(w/200)),slot=id=>expanded.has(id)?cardHeight+86:showAll&&!hasExpansion?62:86;
+ const right=ns.filter(n=>n.id!==focus&&sides.get(n.id)==='right'),left=ns.filter(n=>n.id!==focus&&sides.get(n.id)!=='right');
+ const sum=list=>list.reduce((total,n)=>total+slot(n.id),0),rootHeight=slot(focus);
+ const rowHeights=[];if(showAll)for(let i=0;i<ns.length;i+=cols)rowHeights.push(Math.max(...ns.slice(i,i+cols).map(n=>slot(n.id))));
+ const contentHeight=showAll?rowHeights.reduce((a,b)=>a+b,0)+28:compact?rootHeight+Math.max(sum(left),sum(right))+24:Math.max(rootHeight,sum(left),sum(right))+40;
+ const h=Math.max(canvas.clientHeight,contentHeight);
+ stage.style.height=h+'px';stage.setAttribute('viewBox',`0 0 ${w} ${h}`);
+ if(showAll){let top=Math.max(20,(h-contentHeight)/2+20);for(let row=0;row<rowHeights.length;row++){ns.slice(row*cols,(row+1)*cols).forEach((n,i)=>points.set(n.id,{x:(i+.5)*w/cols,y:top+22}));top+=rowHeights[row];}}
+ else{
+  points.set(focus,{x:w*.5,y:compact?28:(h-rootHeight)/2+28});
+  const spread=(list,x)=>{let top=compact?rootHeight+18:(h-sum(list))/2+28;for(const n of list){points.set(n.id,{x,y:top});top+=slot(n.id);}};
+  spread(right,w*(compact?.75:.83));spread(left,w*(compact?.25:.17));
+ }
+ for(const n of ns)if(positions.has(n.id))points.set(n.id,positions.get(n.id));
+ stage.innerHTML=ns.length?'':`<text class="empty" x="${w/2}" y="${h/2}">Add a memory to see its connections.</text>`;
+ const paths=[],texts=[],groups=[],pairs=new Map();
+ for(const e of es){const key=[e.src,e.dst].sort().join('\u0000');if(!pairs.has(key))pairs.set(key,e);}
+ for(const e of pairs.values()){
+  const a=points.get(e.src),b=points.get(e.dst);if(!a||!b)continue;const mx=(a.x+b.x)/2;
+  const d=routeEdge(a,b,ns.filter(n=>n.id!==e.src&&n.id!==e.dst).map(n=>points.get(n.id)).filter(Boolean),mx);
+  paths.push(`<path class="edge ${e.carrier==='inline'?'inline':''}" d="${d}"/>`);
+  if(!showAll&&!compact&&pairs.size<=4&&Math.abs(b.x-a.x)>w*.3)texts.push(`<text class="edge-label" x="${mx}" y="${(a.y+b.y)/2-8}">${esc(fitLabel(e.carrier==='inline'?'Markdown link':e.rel.replaceAll('_',' '),w*.22))}</text>`);
+ }
+ for(const n of ns){
+  const p=points.get(n.id),isFocus=n.id===focus,isExpanded=expanded.has(n.id),connections=connectionCount(n.id);
+  const cellWidth=showAll?w/cols:compact?(isFocus?w-32:w*.5-24):w*.29;
+  const width=Math.max(24,Math.min(cellWidth-16,2*Math.min(p.x-10,w-p.x-10)));
+  const text=fitLabel(label(n),width,isFocus),hitWidth=Math.max(60,Math.min(width,measure.measureText(text).width+24));
+  const cardWidth=Math.max(100,Math.min(260,width)),cardId='node-content-'+encodeURIComponent(n.id);
+  groups.push(`<g class="node ${isFocus?'focus':''} ${n.kind} ${isExpanded?'expanded':''}" data-id="${esc(n.id)}" transform="translate(${p.x},${p.y})" role="group" aria-label="${esc(label(n))}"><g class="node-trigger" tabindex="0" role="button" aria-label="${isExpanded?'Collapse':'Expand'} ${esc(label(n))}, ${connections} connections" aria-expanded="${isExpanded}" ${isExpanded?`aria-controls="${esc(cardId)}"`:''}><title>${esc(label(n))} · click to ${isExpanded?'collapse':'expand'}</title><rect class="hit" x="${-hitWidth/2}" y="-24" width="${hitWidth}" height="62" rx="5"/><circle class="core" cx="0" cy="0" r="${isFocus?14:10}" fill="${isFocus?'#4fd6e0':'#62aeb8'}" stroke="#8be0e6" stroke-width="1.4"/><circle class="toggle-dot" cx="20" cy="-15" r="8"/><text class="toggle-mark" x="20" y="-11">${isExpanded?'−':'+'}</text><text y="${isFocus?34:29}">${esc(text)}</text></g>${isExpanded?`<foreignObject id="${esc(cardId)}" x="${-cardWidth/2}" y="48" width="${cardWidth}" height="${cardHeight}"><div xmlns="http://www.w3.org/1999/xhtml" class="node-card"><div class="card-meta">${n.version!=null?'Version '+esc(n.version)+' · ':''}${connections} ${connections===1?'connection':'connections'}</div><div class="card-body">${esc(n.body||(n.kind==='ghost'?'Unresolved reference.':'No body supplied.'))}</div><div class="card-actions"><button data-details="${esc(n.id)}" aria-label="Details for ${esc(label(n))}">Details</button></div></div></foreignObject>`:''}</g>`);
+ }
+ stage.insertAdjacentHTML('beforeend',paths.join('')+texts.join('')+groups.join(''));
+ for(const el of stage.querySelectorAll('.card-body'))el.scrollTop=scrolls.get(el.closest('.node').dataset.id)||0;
+ if(activeId){if(activeDetails)nodeElement(activeId)?.querySelector('[data-details]')?.focus({preventScroll:true});else focusNode(activeId);}
+ $('scope').textContent=showAll?`${ns.length} nodes · ${pairs.size} connections`:`${ns.length} nodes · ${ns.filter(n=>expanded.has(n.id)).length} expanded`;
+ $('all').setAttribute('aria-pressed',String(showAll));
+ window.__graphState=()=>({focus,selected,showAll,expanded:[...expanded],visible:ns.map(n=>n.id),edges:es,detailsOpen:!panel.hidden});
+}
+function openNode(id,keyboard=false){selected=id;editing=false;renderPanel();if(keyboard)panel.querySelector('.close')?.focus();}
+function renderPanel(){
+ for(const g of stage.querySelectorAll('.node'))g.classList.toggle('selected',g.dataset.id===selected);
+ const n=nodes.get(selected);panel.hidden=!n;if(!n){panel.innerHTML='';return;}
+ const links=edges.filter(e=>e.src===n.id||e.dst===n.id),others=[...nodes.values()].filter(m=>m.kind==='memory'&&m.id!==n.id);
+ panel.innerHTML=`<button class="close" aria-label="Close details">×</button><h2>${esc(label(n))}</h2><div class="meta">${esc(n.id)}${n.version!=null?' · v'+esc(n.version):''}${n.kind==='ghost'?' · unresolved reference':''}</div>${n.body?`<div class="body">${esc(n.body)}</div>`:''}<div class="actions">${n.kind==='memory'?'<button id="edit">Edit memory</button>':''}${n.id!==focus?'<button id="center">Focus here</button>':''}</div><details><summary>${links.length} links</summary>${links.map(e=>`<div class="link"><span>${e.dst===n.id?'← ':'→ '}<button class="link-target" data-node="${esc(e.dst===n.id?e.src:e.dst)}">${esc(label(nodes.get(e.dst===n.id?e.src:e.dst)))}</button> <span class="rel">${esc(e.rel)}</span></span>${e.src===n.id&&e.carrier==='typed'?`<button class="remove" data-edge="${esc(e.id)}" aria-label="Remove ${esc(e.rel)} link to ${esc(label(nodes.get(e.dst)))}">×</button>`:''}</div>`).join('')||'<div class="meta">No links yet.</div>'}</details>${n.revision_links?.length?`<details><summary>Replaced revisions (${n.revision_links.length})</summary>${n.revision_links.map(link=>`<div class="link"><span>${esc(label(nodes.get(link.target))||link.target)}${link.version!=null?' · revision '+esc(typeof link.version==='object'?link.version.value:link.version):''}<div class="meta">${esc(link.reason||'Reason not supplied')} · ${esc(typeof link.contributor==='object'?(link.contributor?.name||link.contributor?.id||'Contributor not supplied'):(link.contributor||'Contributor not supplied'))}</div></span></div>`).join('')}</details>`:''}${n.kind==='memory'&&others.length?`<details><summary>Add a link</summary><form class="form" id="link-form"><label>To memory<select aria-label="Link target" id="target">${others.map(m=>`<option value="${esc(m.id)}">${esc(label(m))}</option>`).join('')}</select></label><label>Relation<input id="relation" aria-label="Relation" value="relates_to" required></label><div id="replacement-fields" hidden><label>Reason for replacement<input id="replacement-reason"></label><label>Contributor identity<input id="replacement-contributor" placeholder="Person or agent identifier"></label></div><button>Add link</button></form></details>`:''}<div class="error" role="alert"></div>`;
+ panel.querySelector('.close').onclick=closePanel;
+ for(const b of panel.querySelectorAll('[data-node]'))b.onclick=()=>openNode(b.dataset.node,true);
+ if($('edit'))$('edit').onclick=()=>editNode(n);
+ if($('center'))$('center').onclick=()=>setFocus(n.id);
+ for(const b of panel.querySelectorAll('[data-edge]'))b.onclick=()=>mutate('api/edge?id='+encodeURIComponent(b.dataset.edge),'DELETE');
+ if($('link-form')){
+  $('relation').oninput=()=>{const replaces=$('relation').value.trim()==='supersedes';$('replacement-fields').hidden=!replaces;$('replacement-reason').required=replaces;$('replacement-contributor').required=replaces;};
+  $('link-form').onsubmit=e=>{e.preventDefault();const rel=$('relation').value.trim();addEdge(n.id,$('target').value,rel,rel==='supersedes'?{reason:$('replacement-reason').value.trim(),contributor:$('replacement-contributor').value.trim()}:{});};
+ }
+}
+function editNode(n){
+ editing=true;panel.innerHTML=`<h2>Edit memory</h2><form class="form" id="edit-form"><label>Title<input id="title" value="${esc(label(n))}"></label><label>Tags, comma separated<input id="tags" value="${esc((n.tags||[]).join(', '))}"></label><label>Body<textarea id="body">${esc(n.body)}</textarea></label><div class="actions"><button>Save</button><button type="button" id="cancel">Cancel</button></div></form><div class="error" role="alert"></div>`;
+ $('cancel').onclick=()=>{editing=false;renderPanel();$('edit')?.focus();};
+ $('title').focus();
+ $('edit-form').onsubmit=async e=>{e.preventDefault();await mutate('api/node','POST',{id:n.id,title:$('title').value.trim(),tags:$('tags').value.split(',').map(t=>t.trim()).filter(Boolean),body:$('body').value});};
+}
+async function mutate(url,method,body){
+ const hadPanelFocus=panel.contains(document.activeElement);
+ try{const r=await fetch(url,{method,headers:{'Content-Type':'application/json'},...(body?{body:JSON.stringify(body)}:{})});const result=await r.json();if(!r.ok||result.ok===false)throw Error(result.error||'Unable to save');editing=false;await poll(true);renderPanel();if(hadPanelFocus)panel.querySelector('.close')?.focus();$('notice').textContent='Saved';setTimeout(()=>$('notice').textContent='',2000);}
+ catch(e){const error=panel.querySelector('.error');if(error)error.textContent=e.message;else $('notice').textContent=e.message;}
+}
+const addEdge=(src,dst,rel,context={})=>mutate('api/edge','POST',{src,dst,rel:rel||'relates_to',...context});
+function setFocus(id){focus=id;showAll=false;selected=null;editing=false;positions.clear();expanded.clear();$('focus-picker').value=id;canvas.scrollTop=0;render();renderPanel();}
+$('focus-picker').onchange=e=>setFocus(e.target.value);$('all').onclick=()=>{showAll=!showAll;positions.clear();canvas.scrollTop=0;render();};
+function point(e){const r=stage.getBoundingClientRect();return{x:e.clientX-r.left,y:e.clientY-r.top};}
+stage.onpointerdown=e=>{if(e.button!==0||e.target.closest('.node-card'))return;const g=e.target.closest('.node');if(!g){selected=null;editing=false;renderPanel();return;}focusNode(g.dataset.id);const p=point(e);gesture={id:g.dataset.id,start:p,last:p,link:e.shiftKey&&nodes.get(g.dataset.id)?.kind==='memory',moved:false};stage.setPointerCapture(e.pointerId);};
+stage.onpointermove=e=>{if(!gesture)return;const p=point(e);gesture.last=p;gesture.moved||=Math.hypot(p.x-gesture.start.x,p.y-gesture.start.y)>4;if(!gesture.moved)return;if(gesture.link){let line=stage.querySelector('.preview');if(!line){line=document.createElementNS('http://www.w3.org/2000/svg','line');line.setAttribute('class','preview');stage.append(line);}for(const [k,v] of Object.entries({x1:gesture.start.x,y1:gesture.start.y,x2:p.x,y2:p.y}))line.setAttribute(k,v);}else{const margin=expanded.has(gesture.id)?Math.min(140,stage.clientWidth/2):32,bottom=expanded.has(gesture.id)?226:44;positions.set(gesture.id,{x:Math.max(margin,Math.min(stage.clientWidth-margin,p.x)),y:Math.max(28,Math.min(stage.clientHeight-bottom,p.y))});render();}};
+stage.onpointerup=e=>{if(!gesture)return;const g=gesture;gesture=null;if(g.link&&g.moved){const target=document.elementFromPoint(e.clientX,e.clientY)?.closest('.node')?.dataset.id;if(target&&target!==g.id&&nodes.get(target)?.kind==='memory'){openNode(g.id);$('target').value=target;$('link-form').closest('details').open=true;$('relation').focus();}else $('notice').textContent='Drop on another memory to choose a relation';stage.querySelector('.preview')?.remove();}else if(!g.moved)toggleNode(g.id);};
+stage.onpointercancel=()=>{gesture=null;stage.querySelector('.preview')?.remove();};
+stage.onkeydown=e=>{if(e.repeat)return;const trigger=e.target.closest('.node-trigger');if(trigger&&['Enter',' '].includes(e.key)){e.preventDefault();toggleNode(trigger.closest('.node').dataset.id);}};
+stage.onclick=e=>{const button=e.target.closest('[data-details]');if(button){e.preventDefault();openNode(button.dataset.details,true);}};
+addEventListener('keydown',e=>{if(e.key==='Escape'){gesture=null;stage.querySelector('.preview')?.remove();closePanel();}});
+addEventListener('resize',()=>{positions.clear();render();});
+addEventListener('message',e=>{if(e.source!==parent||e.data?.type!=='omp-focus')return;const id=e.data.identifier;if(nodes.has(id)){showAll=false;setFocus(id);}else pendingFocus=id;});
+async function poll(force=false){if(polling)return;polling=true;try{const r=await fetch('api/graph');if(!r.ok)throw Error('Graph unavailable');const txt=await r.text();if(force||txt!==lastJson){lastJson=txt;merge(JSON.parse(txt));}}catch(e){$('notice').textContent=e.message;}finally{polling=false;}}
+poll();setInterval(poll,800);
+</script>
+</body>
+</html>

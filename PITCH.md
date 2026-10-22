@@ -31,8 +31,7 @@ settle a few open questions in the spec.
 
 Agent memory is the new lock-in. Every harness keeps it differently, and the
 exports that exist lose the parts that matter: when something was learned,
-who said it, and what was deleted. In a field report from the working group, a
-store reported 208 records "applied" while keeping none of them.
+who said it, and what was deleted.
 
 The Open Memory Protocol v0.2 editors' draft (PR #13) combines seven sources:
 Letta, IBM, AIDP/FMP, Cognee, Context Nest, the Mila + Mozilla AMS Card and the
@@ -41,9 +40,10 @@ body), a manifest with a global identity (`origin` + `identifier`), provenance
 as a list of contributors, import receipts, tombstones that stop forgotten data
 from coming back, and profiles from "a folder of markdown" up to "audit".
 
-We'll spend about 15 minutes on a live demo. One export file opens as a Markdown
-folder, a knowledge graph, a search index, an agent's context window, and an
-auditor. Then it goes through three importers and a forget. After that we pick
+We'll spend about 15 minutes on a live demo. A pile of markdown files becomes one
+export, and that export becomes a Markdown folder, a knowledge graph, a vector
+index, an agent's context and topic summaries. Then one memory moves through four systems, and we compare what
+survives each move with pairwise converters and with a shared format. After that we pick
 two of six open issues and settle them as a group. Builders who maintain a
 harness, memory layer or vector store are especially welcome.
 
@@ -52,18 +52,16 @@ harness, memory layer or vector store are especially welcome.
 | Time | Slides | What happens |
 |---|---|---|
 | 0:00 | 1 | Two show-of-hands questions: who uses more than one agent? Who has moved memory between them? |
-| 0:03 | 2–4 | The problem in three slides. Same fact in five shapes, the field report numbers, and the N×M slider |
-| 0:08 | 5–7 | The format. Scope, the three-field minimal memory, the manifest and global identity |
-| 0:13 | **8** | **Live demo.** One export, five tools. Ask for a volunteer to AirDrop a `CLAUDE.md` or `AGENTS.md` and drop it on the deck. The auditor shows what it already conforms to and what's missing |
-| 0:20 | 9–10 | Runtime projection vs interchange. Provenance without a confidence score |
-| 0:24 | **11–12** | **Live demo.** Import receipts across three stores, then forget a memory and try to bring it back from an old backup |
-| 0:29 | 13–15 | Dangling references and trust on import. What crosses the runtime boundary. The proof that the sample round-trips through separately written SDK code |
-| 0:33 | **16** | **Vote**, then discuss the top two issues (about 10 minutes each) |
-| 0:55 | 17 | The ask, plus names and emails on the index card |
+| 0:03 | 2–3 | The problem: the same fact in countless formats, with no identity, provenance or lifecycle. Then the adapter slider: a converter for every pair of tools vs one import and one export per tool |
+| 0:08 | 4 | The memory object: three required fields plus a body |
+| 0:11 | **5** | **Live demo.** Files in. Ask for a volunteer to AirDrop a `CLAUDE.md`, `AGENTS.md` or a folder of notes and drop it on the deck. The files convert into one export, no model needed |
+| 0:14 | **6** | **Live demo.** Out to any format. The target rotates: Markdown folder, knowledge graph, vector index, agent context, topic summaries. Point at the AI and embeddings flags |
+| 0:18 | **7** | **Live demo.** One memory, four stops: Claude Code → team memory server → graph store → Codex. Plays by itself (about 13 seconds): on the converter track the labels fall off, on the shared-format track they stay and each system adds a stamp. Replay is next to the headline |
+| 0:23 | **8** | **Live demo.** Two stores exchange memory in six steps that play by themselves (about 30 seconds): introductions, a copy, a move, a conflict OMP doesn't resolve, a forget, and an old copy coming back. Point at the receipts in the middle |
+| 0:30 | **9** | **Vote**, then discuss the top two issues (about 11 minutes each) |
+| 0:52 | 10 | The ask, plus names and emails on the index card |
 
-If the room is small and hands-on, skip 5, 9, 13 and 14 and go straight from the
-demos to the vote. The appendix slides are for questions about the v0.1 → v0.2
-changes and the checksum convention.
+If time is short, skip slide 4 and explain the fields during the demos.
 
 ## Choosing which issues to discuss
 
@@ -94,13 +92,10 @@ thread tagged "FOO 2026" so they can be attributed in v0.3.
 
 | Claim | Source |
 |---|---|
-| 204/204 chunks intact, 204/204 lost `ingested_at`, 208 "applied" / 0 stored | PR #12 Hermes field report, 2026-10-02 |
 | All spec content, statuses and issue numbers | PR #13 working spec v0.2, 2026-10-14 |
 | 12 harnesses | `prototypes/acp_memory_server` README |
-| 7/7 fidelity checks, 0 model calls | `python-conversion-sdk/demo-output/report.json` |
-| Graph round trip: 0 fields changed. Wiki round trip: 1 field (path added to `MEMORY.md`) | Run on this deck's `sample/` on 2026-10-20 |
 | Checksums verify in the browser | `sample/build_sample.py` (Python) and the deck (WebCrypto) agree |
 
-The cloud, graph and "typical store" importers in the deck are illustrations
-written for the session. They are not vendor integrations. The spec is an
-editors' draft, not an adopted standard, and the deck says so on slide 15.
+The four systems in the trip demo, and the converters between them, are
+illustrations written for the session. They are not vendor integrations. The spec is an
+editors' draft, not an adopted standard, and the deck says so on slide 9.

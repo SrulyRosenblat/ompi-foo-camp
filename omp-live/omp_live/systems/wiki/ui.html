@@ -1,0 +1,262 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Wiki</title>
+<style>
+  :root { --page:#ffffff; --side:#f6f6f6; --ink:#202122; --ink-2:#54595d; --rule:#a2a9b1; --rule-2:#eaecf0; --link:#3366cc; --red:#d33; --amber:#ac6600; --green:#14866d; }
+  * { box-sizing: border-box; }
+  html, body { height: 100%; margin: 0; }
+  body { background: var(--side); color: var(--ink); font: 14px/1.6 "Helvetica Neue", Helvetica, Arial, sans-serif; display: grid; grid-template-columns: 176px 1fr; height: 100vh; }
+  nav { padding: 14px 10px 14px 12px; overflow: auto; font-size: 12.5px; }
+  nav .brand { font: 600 15px/1.2 "Linux Libertine", Georgia, "Times New Roman", serif; margin: 2px 0 14px; }
+  nav .folder { color: var(--ink-2); margin: 10px 0 2px; }
+  nav .folder::before { content: "▸ "; color: var(--rule); }
+  nav a { display: block; color: var(--link); text-decoration: none; padding: 1px 0 1px 12px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  nav a:hover { text-decoration: underline; }
+  nav a.active { color: var(--ink); font-weight: 600; }
+  nav button { margin-top: 16px; width: 100%; }
+  main { background: var(--page); border-left: 1px solid var(--rule); padding: 20px 28px 60px; overflow: auto; }
+  .title { font: 400 27px/1.25 "Linux Libertine", Georgia, "Times New Roman", serif; margin: 0 0 2px; padding-bottom: 4px; border-bottom: 1px solid var(--rule); }
+  .byline { color: var(--ink-2); font-size: 12.5px; margin: 6px 0 12px; }
+  .byline .unknown { color: var(--red); }
+  .infobox { float: right; width: 190px; margin: 0 0 12px 18px; padding: 8px 10px; background: var(--side); border: 1px solid var(--rule-2); font-size: 12px; }
+  @media (max-width: 760px) { .infobox { float: none; width: auto; margin: 0 0 14px; display: grid; grid-template-columns: auto 1fr; gap: 2px 12px; } .infobox dd { margin: 0; } }
+  .infobox dt { color: var(--ink-2); }
+  .infobox dd { margin: 0 0 6px; font-family: ui-monospace, Menlo, monospace; font-size: 11.5px; word-break: break-all; }
+  .infobox dd.conflict { color: var(--amber); font-family: inherit; font-size: 12px; }
+  .infobox dd.expired { color: var(--ink-2); text-decoration: line-through; }
+  .infobox .tag { color: var(--green); font-family: inherit; }
+  article { font-size: 14px; max-width: 70ch; }
+  article.expired { opacity: .45; }
+  article h1, article h2, article h3 { font: 400 20px/1.3 "Linux Libertine", Georgia, serif; margin: 1.2em 0 .4em; padding-bottom: 2px; border-bottom: 1px solid var(--rule-2); }
+  article h3 { font-size: 16px; border: 0; font-weight: 700; font-family: inherit; }
+  article code { font-family: ui-monospace, Menlo, monospace; font-size: .92em; background: #f8f9fa; border: 1px solid var(--rule-2); padding: 0 3px; }
+  article pre { background: #f8f9fa; border: 1px solid var(--rule-2); padding: 10px; overflow: auto; font-size: 12.5px; }
+  article ul { padding-left: 22px; }
+  a.wl { color: var(--link); text-decoration: none; }
+  a.wl:hover { text-decoration: underline; }
+  a.wl.dangling { color: var(--red); }
+  a.wl.dangling::after { content: " (page does not exist)"; font-size: .85em; color: var(--ink-2); }
+  .backlinks { clear: both; margin-top: 28px; padding-top: 8px; border-top: 1px solid var(--rule-2); font-size: 12.5px; color: var(--ink-2); }
+  button { font: inherit; font-size: 12.5px; background: #f8f9fa; border: 1px solid var(--rule); color: var(--ink); padding: 3px 10px; border-radius: 2px; cursor: pointer; }
+  button:hover { background: #fff; }
+  button:focus-visible { outline: 2px solid var(--link); outline-offset: 1px; }
+  button.danger { color: var(--red); }
+  .toolbar { display: flex; gap: 8px; margin-top: 16px; }
+  .field { margin: 10px 0; } .field label { display: block; font-size: 12px; color: var(--ink-2); } .field input { width: 100%; font: inherit; padding: 5px 8px; border: 1px solid var(--rule); }
+  textarea { width: 100%; min-height: 300px; font: 13px/1.5 ui-monospace, Menlo, monospace; border: 1px solid var(--rule); padding: 10px; color: var(--ink); }
+  .empty { color: var(--ink-2); margin-top: 30px; }
+  .flash { animation: flash 2.5s ease-out; }
+  @keyframes flash { 0%, 30% { background: #fff3b0; } 100% { background: transparent; } }
+  @media (prefers-reduced-motion: reduce) { .flash { animation: none; background: #fff3b0; } }
+</style>
+<style>
+:root{--page:#14171d;--side:#101217;--ink:#ece8e0;--ink-2:#a0a5ae;--rule:#363c48;--rule-2:#272c36;--link:#8fc3ff;--red:#ff8585;--amber:#f3b54a;--green:#6fdc9b}
+body{font-family:"Avenir Next",system-ui,sans-serif}nav{border-right:1px solid var(--rule-2)}nav a.active{background:#f3b54a15;color:var(--ink);box-shadow:inset 2px 0 var(--amber)}.title{font-family:Georgia,serif}.infobox{background:#1b1f27}.toolbar button,nav button{background:#1b1f27;color:var(--ink);border-color:var(--rule);border-radius:99px}textarea,.field input{background:#101217;color:var(--ink);border-color:var(--rule)}code,pre{background:#1b1f27!important;color:var(--ink)}.flash{animation:signal-flash 2s ease-out}@keyframes signal-flash{from{background:#f3b54a22}to{background:transparent}}
+.drag-hint{color:var(--ink-2);font-size:11px;line-height:1.5;margin-top:12px}.folder{border-radius:4px;padding:4px 6px!important;min-height:28px;transition:background .15s}.folder.drop-target{background:#f3b54a33;color:var(--ink);outline:1px dashed var(--amber)}nav a.dragging{opacity:.4}#move-status{font-size:11px;line-height:1.5;margin-top:10px;color:var(--green);overflow-wrap:anywhere}#move-status.error{color:var(--red)}.move-controls{display:flex;gap:7px;align-items:center;flex-wrap:wrap;margin-left:auto}.move-controls label{font-size:12px;color:var(--ink-2)}.move-controls select{background:#101217;color:var(--ink);border:1px solid var(--rule);padding:4px 7px;max-width:230px;border-radius:5px}.toolbar{flex-wrap:wrap}
+body{grid-template-columns:220px minmax(0,1fr)}nav,main{min-width:0}main{overflow-wrap:anywhere}.title{overflow-wrap:anywhere}nav .brand{color:var(--amber);font-family:inherit;font-size:14px}nav a{padding:5px 8px 5px 18px;border-radius:4px}nav a:focus-visible,input:focus-visible,textarea:focus-visible,select:focus-visible,summary:focus-visible{outline:2px solid var(--amber);outline-offset:2px}nav .folder{cursor:pointer;display:flex;align-items:center;gap:6px;list-style:none}nav .folder::before{content:'▸';flex:none}nav details[open]>.folder::before{content:'▾'}nav summary::-webkit-details-marker{display:none}.folder-name{overflow-wrap:anywhere;min-width:0}.folder-count{margin-left:auto;font-size:11px;color:var(--ink-2)}.folder-empty{padding:2px 8px 6px 18px;color:var(--ink-2);font-size:11px}.sidebar-actions{display:flex;gap:6px;flex-wrap:wrap}.sidebar-actions button{margin-top:12px;width:auto;flex:1;white-space:nowrap}.drag-hint{margin-top:10px}.nav-toggle{display:none}button:disabled{opacity:.5;cursor:default}button:hover{background:#272c36}.editor-note{font-size:12px;color:var(--ink-2);margin:10px 0}.editor-status{font-size:12px;color:var(--amber);min-height:1.6em}.editor-status.error{color:var(--red)}textarea{resize:vertical;min-height:40vh}article{min-width:0}article pre{max-width:100%}.move-controls select{min-width:100px;width:auto;max-width:100%}.move-help{font-size:11px;color:var(--ink-2);flex-basis:100%;text-align:right}.toolbar{align-items:center}#move-status:empty{margin:0}
+@media(max-width:600px){body{display:flex;flex-direction:column;height:100dvh}nav{flex:none;max-height:42dvh;padding:10px 14px;border-bottom:1px solid var(--rule);overflow:auto}nav .brand{margin:0;display:flex;align-items:center;justify-content:space-between}.nav-toggle{display:inline-block;margin:0;width:auto}nav.sidebar-closed #sidebar-content{display:none}main{flex:1;padding:18px 16px 36px;border-left:0}.title{font-size:24px}.sidebar-actions button{margin-top:8px}#tree{margin-top:6px}.toolbar{gap:8px}.toolbar button{min-height:36px}.move-controls{margin-left:0;flex-basis:100%;margin-top:8px}.move-help{text-align:left}.infobox{grid-template-columns:minmax(70px,auto) minmax(0,1fr)}textarea{min-height:36vh}}
+@media(prefers-reduced-motion:reduce){.folder{transition:none}.flash{animation:none;background:#f3b54a22}}
+</style></head>
+<body>
+<nav aria-label="Wiki pages">
+  <div class="brand">Team wiki <button class="nav-toggle" aria-expanded="true" aria-controls="sidebar-content" onclick="toggleSidebar()">Hide pages</button></div>
+  <div id="sidebar-content">
+  <div id="tree"></div>
+  <div class="sidebar-actions"><button onclick="newPage()">Create a page</button><button onclick="newFolder()">New folder</button></div><div class="drag-hint">Drag a note onto a folder, or use Folder → Move on the page.</div>
+  </div><div id="move-status" role="status" aria-live="polite" aria-atomic="true"></div>
+</nav>
+<main id="main"><div class="empty">Loading…</div></main>
+<script>
+let pages = [], current = null, lastJson = "", editing = false, flashNext = false, folders = [], dragging = null, moving = false;
+let editSnapshot = null, busy = false, pollSequence = 0, appliedSequence = 0, mutationEpoch = 0;
+const collapsedFolders = new Set();
+function toggleSidebar(){const nav=document.querySelector('nav'),closed=nav.classList.toggle('sidebar-closed'),button=nav.querySelector('.nav-toggle');button.setAttribute('aria-expanded',String(!closed));button.textContent=closed?'Show pages':'Hide pages';}
+function editorStatus(text,error=false){const el=document.getElementById('editor-status');if(el){el.textContent=text;el.classList.toggle('error',error);}}
+function canLeaveEditor(){if(busy||moving){moveStatus('Please wait for the current change to finish.');return false;}if(editing){editorStatus('Save your draft or cancel editing before opening, creating, or moving a page.');document.getElementById('ed')?.focus();return false;}return true;}
+function beginEdit(){if(busy||moving)return;const p=pages.find(p=>p.path===current);if(!p)return;editSnapshot=structuredClone(p);editing=true;flashNext=false;renderPage();document.getElementById('ed-title').focus();}
+function cancelEdit(){if(busy)return;editing=false;editSnapshot=null;flashNext=false;renderPage();}
+function editContent(p){return JSON.stringify([p.body,p.title||'',p.meta?.tags||[]]);}
+function folderNames(){return [...new Set(['',...folders,...pages.map(p=>p.path.includes('/')?p.path.slice(0,p.path.lastIndexOf('/')):'')])].sort();}
+async function request(url,options){const response=await fetch(url,options);const text=await response.text();let result;try{result=text?JSON.parse(text):{};}catch{throw new Error('Unexpected server response. Try again.');}if(!response.ok)throw new Error(result.error||'Request failed ('+response.status+'). Try again.');return result;}
+function setBusy(value){busy=value;mutationEpoch++;document.querySelectorAll('button, #move-folder, #ed, #ed-title, #ed-tags').forEach(el=>el.disabled=value);if(!value)updateMoveButton();}
+function updateMoveButton(){const select=document.getElementById('move-folder'),button=document.getElementById('move-button');if(select&&button){const folder=current?.includes('/')?current.slice(0,current.lastIndexOf('/')):'';button.disabled=busy||moving||select.value===folder;}}
+
+function esc(s) { return String(s).replace(/[&<>"]/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c])); }
+function titleOf(p) { return p.title || p.path; }
+function keyOf(p) { const stem = p.path.replace(/\.md$/, ""); return [titleOf(p), p.path, stem, stem.split("/").pop()].map(s => s.toLowerCase()); }
+function resolve(text) { const t = text.trim().toLowerCase(); return pages.find(p => keyOf(p).includes(t)); }
+function resolveMarkdown(href,from=current){
+  try{const u=new URL(href,'https://memory.invalid/'+(from||''));if(u.origin!=='https://memory.invalid')return null;const path=decodeURIComponent(u.pathname.slice(1));return pages.find(p=>p.path===path); }catch{return null;}
+}
+
+function md(src) {
+  const blocks = []; let html = "";
+  src = src.replace(/```([^\n]*)\n([\s\S]*?)\n```/g, (m, lang, code) => { blocks.push(`<pre><code>${esc(code)}</code></pre>`); return `\u0000${blocks.length - 1}\u0000`; });
+  const inline = s => esc(s)
+    .replace(/\[\[([^\]|#]+)(?:#[^\]|]*)?(?:\|([^\]]*))?\]\]/g, (m, t, label) => { const p = resolve(t); return p ? `<a class="wl" href="#" data-path="${esc(p.path)}">${esc(label || t)}</a>` : `<a class="wl dangling" href="#">${esc(label || t)}</a>`; })
+    .replace(/`([^`]+)`/g, "<code>$1</code>")
+    .replace(/\*\*([^*]+)\*\*/g, "<b>$1</b>")
+    .replace(/(^|[^*])\*([^*]+)\*/g, "$1<i>$2</i>")
+    .replace(/(?<!!)\[([^\]]+)\]\(([^)]+)\)/g,(m,label,href)=>{const p=resolveMarkdown(href);if(p)return `<a class="wl" href="#" data-path="${esc(p.path)}">${label}</a>`;if(/^https?:|^mailto:/.test(href))return `<a href="${href}" target="_blank" rel="noopener noreferrer">${label}</a>`;return `<span class="dangling">${label}</span>`;});
+  const lines = src.split("\n"); let para = [], list = null;
+  const flush = () => { if (para.length) { html += `<p>${inline(para.join(" "))}</p>`; para = []; } if (list) { html += `</ul>`; list = null; } };
+  for (const line of lines) {
+    const h = line.match(/^(#{1,3})\s+(.*)/);
+    if (h) { flush(); if (h[1].length === 1 && current && inline(h[2]) === esc(titleOf(pages.find(x => x.path === current)))) continue; html += `<h${h[1].length + 1}>${inline(h[2])}</h${h[1].length + 1}>`; continue; }
+    if (/^\s*[-*]\s+/.test(line)) { if (para.length) { html += `<p>${inline(para.join(" "))}</p>`; para = []; } if (!list) { html += "<ul>"; list = true; } html += `<li>${inline(line.replace(/^\s*[-*]\s+/, ""))}</li>`; continue; }
+    if (/^\s*$/.test(line)) { flush(); continue; }
+    if (/^\u0000\d+\u0000$/.test(line.trim())) { flush(); html += line; continue; }
+    para.push(line);
+  }
+  flush();
+  return html.replace(/\u0000(\d+)\u0000/g, (m, i) => blocks[i]);
+}
+
+function byline(meta) {
+  const prov = (meta.provenance || []).filter(p => p && (p.kind === "human" || p.kind === "agent"));
+  if (!prov.length) return `<span class="unknown">Author unknown.</span> No provenance travelled with this page.`;
+  return "Written by " + prov.map(p => `${esc(p.name || p.id)} (${esc(p.kind)}, ${esc(p.contribution || "contributed")})`).join(", ") + ".";
+}
+
+function moveStatus(text,error=false){const el=document.getElementById('move-status');el.textContent=text;el.classList.toggle('error',error);}
+function renderTree() {
+  const groups = Object.assign(Object.create(null),Object.fromEntries(['',...folders].map(folder=>[folder,[]])));
+  for (const p of pages) { const dir = p.path.includes('/') ? p.path.slice(0,p.path.lastIndexOf('/')) : ''; (groups[dir] ||= []).push(p); }
+  const el=document.getElementById('tree'),focus=el.contains(document.activeElement)?{path:document.activeElement.dataset.path,folder:document.activeElement.dataset.folder}:null;el.replaceChildren();
+  for(const dir of Object.keys(groups).sort()){
+    const group=document.createElement('details');group.open=!collapsedFolders.has(dir);
+    const f=document.createElement('summary');f.className='folder';f.dataset.folder=dir;
+    const name=document.createElement('span');name.className='folder-name';name.textContent=dir||'Top level';
+    const count=document.createElement('span');count.className='folder-count';count.textContent=groups[dir].length;count.setAttribute('aria-label',groups[dir].length+' pages');f.append(name,count);group.append(f);
+    group.ontoggle=()=>{if(group.isConnected){if(group.open)collapsedFolders.delete(dir);else collapsedFolders.add(dir);}};
+    const accepts=e=>e.dataTransfer?.types.includes('application/x-omp-memory');
+    f.ondragover=e=>{if(!accepts(e))return;e.preventDefault();e.dataTransfer.dropEffect='move';f.classList.add('drop-target');};
+    f.ondragleave=()=>f.classList.remove('drop-target');
+    f.ondrop=async e=>{if(!accepts(e))return;e.preventDefault();f.classList.remove('drop-target');try{const item=JSON.parse(e.dataTransfer.getData('application/x-omp-memory'));await moveToFolder(item.identifier,item.path,dir);}catch(error){moveStatus(error.message,true);}};
+    el.appendChild(group);
+    if(!groups[dir].length){const empty=document.createElement('div');empty.className='folder-empty';empty.textContent='No pages yet';group.append(empty);}
+    for(const p of groups[dir].sort((a,b)=>titleOf(a).localeCompare(titleOf(b)))){
+      const a=document.createElement('a');a.href='#';a.textContent=titleOf(p);a.title=p.path;a.dataset.path=p.path;a.draggable=true;
+      if(current===p.path){a.className='active';a.setAttribute('aria-current','page');}
+      a.onclick=e=>{e.preventDefault();open(p.path);};
+      a.ondragstart=e=>{if(!canLeaveEditor()){e.preventDefault();return;}dragging={identifier:p.meta.identifier,path:p.path};e.dataTransfer.setData('application/x-omp-memory',JSON.stringify(dragging));e.dataTransfer.setData('text/plain',p.path);e.dataTransfer.effectAllowed='move';a.classList.add('dragging');};
+      a.ondragend=()=>{dragging=null;a.classList.remove('dragging');document.querySelectorAll('.drop-target').forEach(el=>el.classList.remove('drop-target'));};
+      group.appendChild(a);
+    }
+  }
+  if(focus){const target=[...el.querySelectorAll('a,summary')].find(node=>focus.path?node.dataset.path===focus.path:node.dataset.folder===focus.folder);target?.focus();}
+}
+async function moveToFolder(identifier,source,folder){
+  if(!canLeaveEditor())return;
+  const latest=pages.find(p=>p.meta.identifier===identifier);if(!latest)throw new Error('This note is no longer available. Refresh the page list before moving it.');source=latest.path;
+  const path=(folder?folder+'/':'')+source.split('/').pop();
+  if(path===source){dragging=null;return;}
+  moving=true;setBusy(true);moveStatus('Moving…');
+  try{const result=await request('api/move',{method:'POST',body:JSON.stringify({identifier,path})});current=result.memory.path;collapsedFolders.delete(folder);dragging=null;flashNext=false;await poll(true);moveStatus('Moved to '+current+' · updated everywhere.');}
+  catch(error){moveStatus('Could not move this note: '+error.message+' Choose another folder or retry.',true);}
+  finally{moving=false;dragging=null;setBusy(false);renderTree();renderPage();document.getElementById('move-folder')?.focus();}
+}
+async function moveCurrent(){const p=pages.find(p=>p.path===current);if(!p)return;try{await moveToFolder(p.meta.identifier,p.path,document.getElementById('move-folder').value);}catch(error){moveStatus(error.message,true);}}
+async function newFolder(){if(!canLeaveEditor())return;const folder=prompt('Folder name, for example team/preferences');if(!folder?.trim())return;setBusy(true);try{const result=await request('api/folder',{method:'POST',body:JSON.stringify({folder:folder.trim()})});collapsedFolders.delete(result.folder);await poll(true);moveStatus('Folder created: '+result.folder+'. Use Folder → Move to put a page here.');}catch(error){moveStatus('Could not create folder: '+error.message,true);}finally{setBusy(false);renderTree();renderPage();}}
+
+function renderPage() {
+  const main = document.getElementById("main");
+  const p = editing ? editSnapshot : pages.find(x => x.path === current);
+  if (!p) { main.innerHTML = `<div class="empty">${pages.length ? "Choose a page on the left." : "This wiki is empty. Drop markdown files into the folder, or create a page."}</div>`; return; }
+  const m = p.meta || {};
+  const expired = m.valid_until && new Date(m.valid_until) <= new Date();
+  const ver = m.version && typeof m.version === "object" ? m.version.value : m.version;
+  const rows = [];
+  if ((m.tags || []).length) rows.push(`<dt>Tags</dt><dd class="tag">${m.tags.map(esc).join(", ")}</dd>`);
+  if (m.created_at) rows.push(`<dt>Created</dt><dd>${esc(m.created_at).slice(0, 10)}</dd>`);
+  if (ver != null) rows.push(`<dt>Version</dt><dd>${esc(ver)}</dd>`);
+  if (m.valid_until) rows.push(`<dt>Valid until</dt><dd class="${expired ? "expired" : ""}">${esc(m.valid_until).slice(0, 16).replace("T", " ")}</dd>`);
+  if ((m.x_conflicts || []).length) rows.push(`<dt>Conflict</dt><dd class="conflict">${m.x_conflicts.length + 1} versions, unresolved</dd>`);
+  rows.push(`<dt>Identifier</dt><dd>${esc(String(m.identifier || ""))}</dd>`);
+  rows.push(`<dt>File</dt><dd>${esc(p.path)}</dd>`);
+  const back = pages.filter(q => q.path !== p.path && ((q.body.match(/\[\[([^\]|#]+)/g) || []).some(w => {const r=resolve(w.slice(2));return r&&r.path===p.path;}) || [...q.body.matchAll(/(?<!!)\[[^\]]+\]\(([^)]+)\)/g)].some(m=>resolveMarkdown(m[1],q.path)?.path===p.path)));
+  if (editing) {
+    main.innerHTML = `<h1 class="title">Editing ${esc(titleOf(p))}</h1>
+      <div class="field"><label for="ed-title">Title</label><input id="ed-title" value="${esc(titleOf(p))}"></div>
+      <div class="field"><label for="ed-tags">Tags, comma separated</label><input id="ed-tags" value="${esc((m.tags || []).join(", "))}"></div>
+      <div class="editor-note">Editing ${esc(p.path)} · Markdown links: [Page title](folder/page.md)</div>
+      <label for="ed">Page content</label><textarea id="ed" aria-describedby="editor-status">${esc(p.body)}</textarea>
+      <div class="toolbar"><button id="save-button" onclick="save()">Save page</button><button onclick="cancelEdit()">Cancel editing</button></div>
+      <div id="editor-status" class="editor-status" role="status" aria-live="polite">Draft stays open while the wiki updates.</div>`;
+    return;
+  }
+  main.innerHTML = `<h1 class="title">${esc(titleOf(p))}</h1>
+    <div class="byline">${byline(m)}</div>
+    <dl class="infobox">${rows.join("")}</dl>
+    <article class="${expired ? "expired" : ""}">${md(p.body)}</article>
+    <div class="backlinks">What links here: ${back.length ? back.map(q => `<a class="wl" href="#" data-path="${esc(q.path)}">${esc(titleOf(q))}</a>`).join(", ") : "nothing yet"}</div>
+    <div class="toolbar"><button onclick="beginEdit()">Edit</button><button class="danger" onclick="del()">Delete page</button><div class="move-controls"><label for="move-folder">Folder</label><select id="move-folder" aria-describedby="move-help" onchange="updateMoveButton()">${folderNames().map(dir=>`<option value="${esc(dir)}" ${dir===(p.path.includes('/')?p.path.slice(0,p.path.lastIndexOf('/')):'')?'selected':''}>${esc(dir||'Top level')}</option>`).join('')}</select><button id="move-button" onclick="moveCurrent()">Move</button><div class="move-help" id="move-help">Moves keep the same identifier and update every system.</div></div></div>`;
+  updateMoveButton();
+  main.querySelectorAll("a.wl[data-path]").forEach(a => a.onclick = e => { e.preventDefault(); open(a.dataset.path); });
+  if (flashNext) { flashNext = false; const a = main.querySelector("article"), t = main.querySelector(".title"); for (const el of [a, t]) if (el) { el.classList.add("flash"); setTimeout(() => el.classList.remove("flash"), 2600); } }
+}
+
+function open(path) { if(!canLeaveEditor())return;current = path;collapsedFolders.delete(path.includes('/')?path.slice(0,path.lastIndexOf('/')):'');renderTree();renderPage(); }
+async function save() {
+  if(!editing||busy)return;
+  const body = document.getElementById("ed").value, title = document.getElementById("ed-title").value.trim();
+  const tags = document.getElementById("ed-tags").value.split(",").map(t => t.trim()).filter(Boolean);
+  setBusy(true);editorStatus('Saving…');
+  try{
+    if(!await poll(true))throw new Error('Could not refresh the page before saving. Check the connection and retry.');
+    const latest=pages.find(p=>p.meta.identifier===editSnapshot.meta.identifier);
+    if(!latest)throw new Error('This page was removed elsewhere. Copy your draft before cancelling, then create a new page.');
+    if(editContent(latest)!==editContent(editSnapshot))throw new Error('This page changed elsewhere. Copy your draft, then cancel editing to review the latest version before retrying.');
+    await request('api/page',{method:'POST',body:JSON.stringify({path:latest.path,body,title,tags,if_version:typeof latest.meta.version==='object'?latest.meta.version.value:latest.meta.version})});
+    current=latest.path;editing=false;editSnapshot=null;flashNext=false;mutationEpoch++;
+    const refreshed=await poll(true);moveStatus(refreshed?'Page saved.':'Page saved. Refresh failed; the page list will retry automatically.',!refreshed);
+  }catch(error){editorStatus('Could not save: '+error.message+' Your draft is still here.',true);}
+  finally{setBusy(false);if(!editing){renderTree();renderPage();}}
+}
+async function del() {
+  if(!canLeaveEditor())return;
+  const path=current;setBusy(true);
+  try{await request('api/page?path='+encodeURIComponent(path),{method:'DELETE'});current=null;flashNext=false;mutationEpoch++;await poll(true);moveStatus('Page deleted.');}
+  catch(error){moveStatus('Could not delete this page: '+error.message,true);}
+  finally{setBusy(false);renderTree();renderPage();}
+}
+async function newPage() {
+  if(!canLeaveEditor())return;
+  const title = prompt("Page title");
+  if (!title?.trim()) return;
+  setBusy(true);
+  try{const r=await request('api/new',{method:'POST',body:JSON.stringify({title:title.trim(),body:''})});current=r.path;flashNext=false;mutationEpoch++;await poll(true);moveStatus('Page created.');}
+  catch(error){moveStatus('Could not create page: '+error.message,true);}
+  finally{setBusy(false);renderTree();renderPage();}
+  if(pages.some(p=>p.path===current)&&current&&!document.getElementById('move-status').classList.contains('error'))beginEdit();
+}
+async function poll(force) {
+  const sequence=++pollSequence,epoch=mutationEpoch;
+  try {
+    const response=await fetch('api/pages');if(!response.ok)throw new Error('Could not load pages ('+response.status+').');const txt=await response.text();
+    if(epoch!==mutationEpoch||sequence<appliedSequence)return false;
+    if (!force && txt === lastJson) {appliedSequence=sequence;return true;}
+    if(dragging&&!force)return false;
+    const data=JSON.parse(txt);if(!Array.isArray(data.pages))throw new Error('Invalid page list.');
+    const prev = pages,selected=prev.find(p=>p.path===current);appliedSequence=sequence;lastJson=txt;pages=data.pages;folders=data.folders||[];const silent=new Set(data.silent_identifiers||[]);
+    // Follow identity through path changes without replacing an open draft.
+    const selectedId=editing?editSnapshot?.meta.identifier:selected?.meta.identifier;
+    if(selectedId){const moved=pages.find(p=>p.meta.identifier===selectedId);if(moved)current=moved.path;}
+    if (prev.length && !editing && !busy && !force) {
+      const changed = pages.find(p => { if(silent.has(p.meta.identifier))return false; const o = prev.find(q => q.path === p.path); return !o || o.body !== p.body || JSON.stringify(o.meta) !== JSON.stringify(p.meta); });
+      if (changed) { current = changed.path; flashNext = true; }
+    }
+    if(!editing){if (current && !pages.some(p => p.path === current)) current = null;if (!current && pages.length) current = pages[0].path;}
+    renderTree(); if (!editing&&!busy) renderPage();
+    if(editing&&!busy){const latest=pages.find(p=>p.meta.identifier===editSnapshot.meta.identifier);if(!latest||editContent(latest)!==editContent(editSnapshot))editorStatus('This page changed elsewhere. Your draft is preserved; copy it before cancelling to review the latest version.',true);}
+    return true;
+  } catch (e) { if(!lastJson)moveStatus('Could not load pages. Check the connection; retrying automatically.',true);return false; }
+}
+addEventListener('message',e=>{if(e.source!==parent||e.data?.type!=='omp-focus'||editing||busy||moving)return;const page=pages.find(p=>p.path===e.data.path||p.meta.identifier===e.data.identifier);if(page){flashNext=e.data.animate!==false;open(page.path);}});
+poll(true); setInterval(poll, 600);
+</script>
+</body>
+</html>

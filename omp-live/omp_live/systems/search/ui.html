@@ -1,0 +1,113 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Search</title>
+<style>
+  :root { --bg:#fff; --fg:#1f1f1f; --fg-2:#5f6368; --line:#dadce0; --title:#1a0dab; --path:#006621; --hl:#fff2a8; --warn:#b06000; --bad:#c5221f; --accent:#1a73e8; }
+  * { box-sizing: border-box; }
+  html, body { height: 100%; margin: 0; }
+  body { background: var(--bg); color: var(--fg); font: 14px/1.5 "Helvetica Neue", Helvetica, Arial, sans-serif; display: grid; grid-template-rows: auto 1fr; height: 100vh; }
+  header { padding: 14px 16px 10px; border-bottom: 1px solid var(--line); }
+  .box { display: flex; align-items: center; gap: 10px; border: 1px solid var(--line); border-radius: 24px; padding: 0 16px; height: 44px; box-shadow: 0 1px 6px rgba(32,33,36,.18); }
+  .box:focus-within { border-color: var(--accent); box-shadow: 0 1px 6px rgba(26,115,232,.3); }
+  .box svg { width: 18px; height: 18px; fill: none; stroke: var(--fg-2); stroke-width: 2; flex: none; }
+  .box input { flex: 1; min-width: 0; border: 0; outline: none; font: inherit; font-size: 15px; color: var(--fg); background: transparent; }
+  .box .count { color: var(--fg-2); font-size: 12.5px; white-space: nowrap; }
+  .body { display: grid; grid-template-columns: 170px 1fr; min-height: 0; }
+  aside { border-right: 1px solid var(--line); padding: 12px 12px; overflow: auto; font-size: 12.5px; }
+  aside h3 { margin: 10px 0 4px; font-size: 12px; color: var(--fg-2); font-weight: 600; }
+  aside h3:first-child { margin-top: 0; }
+  aside label { display: flex; align-items: center; gap: 6px; padding: 1px 0; cursor: pointer; white-space: nowrap; overflow: hidden; }
+  aside label span { overflow: hidden; text-overflow: ellipsis; }
+  aside label .n { margin-left: auto; color: var(--fg-2); font-size: 11.5px; }
+  aside input { margin: 0; accent-color: var(--accent); }
+  main { overflow: auto; padding: 10px 18px 24px; }
+  .hit { padding: 9px 0; cursor: pointer; }
+  .hit + .hit { border-top: 1px solid #f1f3f4; }
+  .hit .path { color: var(--path); font-size: 12px; }
+  .hit .t { color: var(--title); font-size: 16px; line-height: 1.3; }
+  .hit:hover .t { text-decoration: underline; }
+  .hit .s { color: var(--fg); font-size: 13px; margin-top: 2px; max-width: 72ch; }
+  .hit.expired { opacity: .45; }
+  mark { background: var(--hl); color: inherit; padding: 0 1px; font-weight: 600; }
+  .flag { display: inline-block; font-size: 11px; color: var(--warn); background: #fff4e5; padding: 0 6px; border-radius: 10px; margin-left: 6px; vertical-align: 2px; }
+  .flag.bad { color: var(--bad); background: #fce8e6; }
+  .flag.grey { color: var(--fg-2); background: #f1f3f4; }
+  .drawer { position: fixed; right: 0; top: 0; bottom: 0; width: 48%; min-width: 360px; background: #fff; border-left: 1px solid var(--line); box-shadow: -4px 0 16px rgba(0,0,0,.08); padding: 16px 18px; overflow: auto; display: none; }
+  .drawer.open { display: block; }
+  .drawer h2 { margin: 0 0 2px; font-size: 17px; font-weight: 500; }
+  .drawer .k { color: var(--fg-2); font-size: 12px; }
+  .fl { display: block; font-size: 12px; color: var(--fg-2); margin-top: 12px; } .fl input { display: block; width: 100%; font: inherit; font-size: 13px; padding: 6px 8px; border: 1px solid var(--line); border-radius: 4px; margin-top: 3px; color: var(--fg); }
+  textarea { width: 100%; height: 220px; font: 13px/1.5 ui-monospace, Menlo, monospace; border: 1px solid var(--line); border-radius: 6px; padding: 10px; margin-top: 12px; color: var(--fg); }
+  textarea:focus { outline: 2px solid var(--accent); outline-offset: -1px; }
+  button { font: inherit; font-size: 13px; background: #fff; color: var(--accent); border: 1px solid var(--line); padding: 5px 14px; border-radius: 4px; cursor: pointer; margin: 10px 6px 0 0; }
+  button.primary { background: var(--accent); color: #fff; border-color: var(--accent); }
+  button:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+  .empty { color: var(--fg-2); padding: 30px 0; }
+  .hit.flash { animation: flash 2.5s ease-out; }
+  @keyframes flash { 0%, 30% { background: #fff3b0; } 100% { background: transparent; } }
+  @media (prefers-reduced-motion: reduce) { .hit.flash { animation: none; background: #fff3b0; } }
+</style>
+<style>
+:root{--bg:#14171d;--fg:#ece8e0;--fg-2:#a0a5ae;--line:#272c36;--title:#ffb0cd;--path:#a0a5ae;--hl:#ff8db433;--warn:#f3b54a;--bad:#ff8585;--accent:#ff8db4}
+body{font-family:"Avenir Next",system-ui,sans-serif}.box{background:#101217}.hit+.hit{border-color:var(--line)}.drawer{background:var(--bg);border-color:var(--line)}.fl input,textarea{background:#101217;color:var(--fg);border-color:var(--line)}button{background:#1b1f27;border-color:var(--line)}.flag,.flag.grey{background:#1b1f27}.flag.bad{background:#ff858515}.hit.flash{animation:signal-flash 2s ease-out}@keyframes signal-flash{from{background:#ff8db422}to{background:transparent}}
+header{display:flex;align-items:center;gap:8px}.box{flex:1;min-width:0}select{max-width:110px;padding:7px;background:#1b1f27;color:var(--fg);border:1px solid var(--line);border-radius:5px;font:inherit;font-size:12px}.filter-toggle{display:none;margin:0}.status{font-size:12px;color:var(--warn);min-height:18px;margin-top:8px}.replacement{font-size:12px;color:var(--fg-2);margin-top:12px}.replacement input{accent-color:var(--accent)}.hit:focus-visible{outline:2px solid var(--accent);outline-offset:2px}.drawer textarea[readonly]{color:var(--fg-2)}[hidden]{display:none!important}@media(max-width:600px){header{padding:10px}.box{padding:0 10px}.count{display:none}.filter-toggle{display:block;padding:7px}.body{grid-template-columns:1fr}.body aside{display:none}.body.filters-open aside{display:block;position:absolute;top:70px;left:10px;right:10px;max-height:240px;z-index:3;background:var(--bg);border:1px solid var(--line);border-radius:6px}.drawer{width:100%;min-width:0}main{padding:8px 14px}.hit .t{font-size:15px}}
+</style></head>
+<body>
+<header><div class="box"><svg viewBox="0 0 24 24"><circle cx="11" cy="11" r="7"/><path d="m20 20-4-4"/></svg><input id="q" aria-label="Search memories" placeholder="Search memories" autocomplete="off"><span class="count" id="count"></span></div><select id="read-mode" aria-label="Read mode"><option value="current">Current</option><option value="history">History</option></select><button class="filter-toggle" id="filter-toggle" aria-expanded="false" aria-controls="facets">Filters</button></header>
+<div class="body"><aside id="facets"></aside><main id="results"></main></div>
+<div class="drawer" id="drawer"></div>
+<script>
+let changed=new Set(),docs=[],hits=null,lastJson='',filters={folder:null,tag:null,author:null,flag:null},openId=null,openVersion=null,q='',historyMode=false,dirty=false,openedVersion=null,querySeq=0,polling=false,pendingPoll=false;
+const $=id=>document.getElementById(id);
+const esc=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const keyOf=d=>JSON.stringify([d.identifier,d.version??0]);
+const folderOf=d=>d.path&&d.path.includes('/')?d.path.slice(0,d.path.lastIndexOf('/')):'top level';
+const expired=d=>d.valid_until&&new Date(d.valid_until)<=new Date();
+const flagsOf=d=>[d.conflicts?'unresolved conflict':null,d.dangling?'dangling link':null,expired(d)?'expired':null,!d.authors.some(a=>a==='human'||a==='agent')?'author unknown':null].filter(Boolean);
+const flagClass=f=>f==='dangling link'?'bad':f==='author unknown'||f==='expired'?'grey':'';
+const safeSnippet=s=>String(s).split(/(<\/?mark>)/).map(x=>/^<\/?mark>$/.test(x)?x:esc(x)).join('');
+function visible(){
+ let list=docs.filter(d=>(!filters.folder||folderOf(d)===filters.folder)&&(!filters.tag||d.tags.includes(filters.tag))&&(!filters.author||d.authors.includes(filters.author))&&(!filters.flag||flagsOf(d).includes(filters.flag)));
+ if(hits){const order=new Map(hits.map((h,i)=>[historyMode?keyOf(h):h.identifier,i]));list=list.filter(d=>order.has(historyMode?keyOf(d):d.identifier)).sort((a,b)=>order.get(historyMode?keyOf(a):a.identifier)-order.get(historyMode?keyOf(b):b.identifier));}return list;
+}
+function facet(title,key,counts){const keys=Object.keys(counts).sort();return keys.length?`<h3>${title}</h3>`+keys.map(k=>`<label><input type="checkbox" data-k="${key}" data-v="${esc(k)}" ${filters[key]===k?'checked':''}><span>${esc(k)}</span><span class="n">${counts[k]}</span></label>`).join(''):'';}
+function renderFacets(){
+ const c={folder:{},tag:{},author:{},flag:{}};for(const d of docs){c.folder[folderOf(d)]=(c.folder[folderOf(d)]||0)+1;for(const t of d.tags)c.tag[t]=(c.tag[t]||0)+1;for(const a of d.authors)c.author[a]=(c.author[a]||0)+1;for(const f of flagsOf(d))c.flag[f]=(c.flag[f]||0)+1;}
+ $('facets').innerHTML=facet('Folder','folder',c.folder)+facet('Tag','tag',c.tag)+facet('Written by','author',c.author)+facet('Needs attention','flag',c.flag);$('facets').querySelectorAll('input').forEach(el=>el.onchange=()=>{filters[el.dataset.k]=el.checked?el.dataset.v:null;render();});
+}
+function render(){
+ renderFacets();const list=visible(),snip=new Map((hits||[]).filter(h=>h.snippet!=null).map(h=>[historyMode?keyOf(h):h.identifier,h.snippet]));$('count').textContent=q?`${list.length} of ${docs.length}`:`${docs.length} ${historyMode?'revisions':'memories'}`;
+ $('results').innerHTML=list.map(d=>`<div role="button" tabindex="0" class="hit ${expired(d)?'expired':''} ${changed.has(d.identifier)&&!historyMode?'flash':''}" data-key="${esc(keyOf(d))}"><div class="path">${esc(d.path||d.identifier)} · version ${esc(d.version??0)}${historyMode?' · history':''}</div><div class="t">${esc(d.title)}${flagsOf(d).map(f=>`<span class="flag ${flagClass(f)}">${f}</span>`).join('')}</div><div class="s">${snip.has(historyMode?keyOf(d):d.identifier)?safeSnippet(snip.get(historyMode?keyOf(d):d.identifier)):esc(d.body.slice(0,160))}</div></div>`).join('')||`<div class="empty">${q?`Nothing matches “${esc(q)}”.`:historyMode?'No retained revisions.':'No current memories.'}</div>`;
+ $('results').querySelectorAll('.hit').forEach(el=>{el.onclick=()=>{const [id,v]=JSON.parse(el.dataset.key);open(id,v);};el.onkeydown=e=>{if(['Enter',' '].includes(e.key)){e.preventDefault();el.click();}};});renderDrawer();
+}
+function status(text){const el=$('edit-status');if(el)el.textContent=text;}
+function renderDrawer(){
+ const dr=$('drawer');if(dirty&&openId)return;
+ const d=docs.find(x=>x.identifier===openId&&(!historyMode||x.version===openVersion));dr.classList.toggle('open',!!d);if(!d){dr.innerHTML='';return;}
+ const signature=JSON.stringify([historyMode,d]);if(dr.dataset.signature===signature)return;dr.dataset.signature=signature;openedVersion=d.version;
+ dr.innerHTML=`<h2>${esc(d.title)}</h2><div class="k">${esc(d.path)} · ${esc(d.media_type)} · version ${esc(d.version)}</div><div class="k">${esc(d.identifier)}${historyMode?' · historical read, editing disabled':''}</div><label class="fl">Title<input id="title" value="${esc(d.title)}" ${historyMode?'readonly':''}></label><label class="fl">Tags, comma separated<input id="tags" value="${esc(d.tags.join(', '))}" ${historyMode?'readonly':''}></label><label class="fl">Body<textarea id="body" ${historyMode?'readonly':''}>${esc(d.body)}</textarea></label>${historyMode?'':`<label class="replacement"><input type="checkbox" id="replaces"> Replaces the previous description</label><div id="replacement-context" hidden><label class="fl">Reason for replacement<input id="reason" placeholder="What changed and why"></label><label class="fl">Contributor identity<input id="contributor" placeholder="Person or agent identifier"></label></div><button class="primary" id="save">Save changes</button>`}<button id="close">Close</button><div class="status" id="edit-status" role="status"></div>`;
+ $('close').onclick=()=>{openId=null;openVersion=null;dirty=false;dr.dataset.signature='';renderDrawer();};
+ if(!historyMode){for(const el of dr.querySelectorAll('input,textarea'))el.oninput=()=>{dirty=true;status('Unsaved changes');$('close').textContent='Discard & close';};$('replaces').onchange=()=>{$('replacement-context').hidden=!$('replaces').checked;dirty=true;status('Unsaved changes');};$('save').onclick=save;}
+}
+function open(id,version){if(dirty&&id!==openId){status('Save or discard this draft before opening another memory.');return;}openId=id;openVersion=version;renderDrawer();}
+async function save(){
+ const id=openId,payload={identifier:id,body:$('body').value,title:$('title').value.trim(),tags:$('tags').value.split(',').map(t=>t.trim()).filter(Boolean),if_version:openedVersion};
+ if($('replaces').checked){payload.supersession={reason:$('reason').value.trim(),contributor:$('contributor').value.trim()};if(!payload.supersession.reason||!payload.supersession.contributor){status('Enter the replacement reason and contributor identity.');return;}}
+ const button=$('save');button.disabled=true;status('Saving…');try{const r=await fetch('api/doc',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(payload)});const result=await r.json();if(!r.ok||result.ok===false)throw Error(result.error||'Unable to save');dirty=false;$('drawer').dataset.signature='';await poll(true);status('Saved across all formats.');}catch(e){status(e.message+' Your draft is still here.');}finally{if(button.isConnected)button.disabled=false;}
+}
+async function runQuery(){const seq=++querySeq,mode=historyMode,text=$('q').value.trim();try{const next=text?(await (await fetch('api/search?q='+encodeURIComponent(text)+'&include_history='+mode)).json()).hits:null;if(seq!==querySeq||mode!==historyMode)return;q=text;hits=next;render();}catch(e){status('Search is unavailable. Try again.');}}
+$('q').oninput=runQuery;
+$('read-mode').onchange=async e=>{if(dirty){e.target.value=historyMode?'history':'current';status('Save or discard this draft before changing read mode.');return;}historyMode=e.target.value==='history';openId=null;openVersion=null;hits=null;lastJson='';querySeq++;await poll(true);};
+$('filter-toggle').onclick=()=>{const body=document.querySelector('.body');body.classList.toggle('filters-open');$('filter-toggle').setAttribute('aria-expanded',String(body.classList.contains('filters-open')));};
+async function poll(force=false){
+ if(polling){pendingPoll||=force;return;}polling=true;const mode=historyMode;try{const response=await fetch('api/docs?include_history='+mode);if(!response.ok)throw Error('Index unavailable');const txt=await response.text();if(mode!==historyMode){pendingPoll=true;return;}if(!force&&txt===lastJson)return;const prev=docs;lastJson=txt;const data=JSON.parse(txt);docs=data.docs;const silent=new Set(data.silent_identifiers||[]);changed=new Set(prev.length?docs.filter(d=>{if(silent.has(d.identifier))return false;const old=prev.find(x=>keyOf(x)===keyOf(d));return !old||old.body!==d.body||old.title!==d.title;}).map(d=>d.identifier):[]);if(q)await runQuery();else render();if(changed.size)setTimeout(()=>changed.clear(),2600);}catch(e){status(e.message);}finally{polling=false;if(pendingPoll){pendingPoll=false;poll(true);}}
+}
+poll(true);setInterval(poll,800);
+addEventListener('message',e=>{if(e.source!==parent||e.data?.type!=='omp-focus'||dirty)return;const doc=docs.find(d=>d.identifier===e.data.identifier);if(doc){q='';hits=null;filters={folder:null,tag:null,author:null,flag:null};$('q').value='';changed.add(doc.identifier);render();const row=[...document.querySelectorAll('.hit')].find(el=>JSON.parse(el.dataset.key)[0]===doc.identifier);row?.scrollIntoView({block:'nearest'});}});
+
+</script>
+</body>
+</html>

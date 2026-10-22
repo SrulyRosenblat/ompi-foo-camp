@@ -1,0 +1,554 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>LLM wiki → OMP → every format: four animation options</title>
+<style>
+.omp{
+  --paper:#f3efe6;--card:#fffdf8;--ink:#1c1a17;--muted:#6b655b;--rule:#d8d1c2;
+  --accent:#d9481c;--keep:#1f7a5a;--keep-bg:#e3f1ea;--lose:#b3261e;--lose-bg:#f7e2df;
+  --warn:#9a6a00;--warn-bg:#f8eed2;--link:#2a5db0;--link-bg:#e4ebf7;
+  --serif:"Iowan Old Style","Palatino Linotype",Palatino,Georgia,serif;
+  --sans:ui-sans-serif,system-ui,-apple-system,"Segoe UI",sans-serif;
+  --mono:ui-monospace,"SF Mono",Menlo,Consolas,monospace;
+  color:var(--ink);font-family:var(--sans);
+  display:flex;flex-direction:column;gap:20px;padding:4px 0 8px;
+}
+.omp *{box-sizing:border-box}
+.panel{background:var(--paper);border:1px solid var(--rule);border-radius:14px;overflow:hidden}
+.phead{display:flex;align-items:center;gap:12px;padding:12px 16px;border-bottom:1px solid var(--rule);background:var(--card)}
+.phead .letter{font-family:var(--serif);font-size:26px;line-height:1;color:var(--accent);width:22px}
+.phead .tt{flex:1;min-width:0}
+.phead h2{font-family:var(--serif);font-size:18px;margin:0;font-weight:600}
+.phead p{margin:2px 0 0;color:var(--muted);font-size:12.5px;line-height:1.35}
+.phead button{font:600 12px var(--sans);border:1px solid var(--rule);background:var(--paper);color:var(--ink);border-radius:999px;padding:6px 12px;cursor:pointer;white-space:nowrap}
+.phead button:hover{border-color:var(--accent);color:var(--accent)}
+.vp{position:relative;width:100%;aspect-ratio:640/420;overflow:hidden}
+.stage{position:absolute;left:0;top:0;width:640px;height:420px;transform-origin:0 0}
+.mono{font-family:var(--mono)}
+
+/* shared bits */
+.card{position:absolute;background:var(--card);border:1px solid var(--rule);border-radius:10px;box-shadow:0 8px 20px -14px rgba(60,40,10,.45)}
+.ch{font:10px var(--mono);color:var(--muted);padding:7px 9px;border-bottom:1px solid var(--rule);display:flex;justify-content:space-between;align-items:center;gap:6px;white-space:nowrap}
+.chip{font:600 9px var(--mono);padding:1px 6px;border-radius:9px;background:var(--rule);color:var(--ink);transition:all .3s}
+.chip.agent{background:var(--link-bg);color:var(--link);opacity:0}
+.chip.agent.on{opacity:1}
+.chip.r2{background:var(--accent);color:#fff}
+.cap{position:absolute;left:14px;right:14px;bottom:10px;height:26px;display:flex;align-items:center;gap:10px;font-size:12.5px;color:var(--muted)}
+.cap .steps{display:flex;gap:4px;flex-shrink:0}
+.cap .steps span{white-space:nowrap}
+.cap .steps span{font:600 10px var(--mono);padding:3px 8px;border-radius:99px;border:1px solid var(--rule);background:var(--card);transition:all .3s}
+.cap .steps span.on{background:var(--ink);color:var(--paper);border-color:var(--ink)}
+.cap .steps span.done{color:var(--keep);border-color:var(--keep)}
+.cap .txt{color:var(--ink);transition:opacity .25s}
+.caret::after{content:"";display:inline-block;width:1px;height:1em;background:var(--accent);vertical-align:-2px;margin-left:1px;animation:blink .8s steps(1) infinite}
+@keyframes blink{50%{opacity:0}}
+.wl{color:var(--link)}
+.dim{color:var(--muted)}
+.flash{animation:flash 1s ease}
+@keyframes flash{0%{background:#ffd9a8}100%{background:transparent}}
+
+/* format tile + minis (used by B and C) */
+.fmt{position:absolute;width:150px;height:94px;background:var(--card);border:1px solid var(--rule);border-radius:10px;overflow:hidden;box-shadow:0 8px 20px -14px rgba(60,40,10,.45);transition:border-color .4s, box-shadow .4s}
+.fmt .fh{display:flex;align-items:center;gap:5px;padding:5px 7px 3px;font-size:10px;white-space:nowrap}
+.fmt .fh b{font-weight:650}
+.fmt .fh span{color:var(--muted);font:9px var(--mono);flex:1;overflow:hidden;text-overflow:ellipsis}
+.stamp{font:600 8.5px var(--mono);color:var(--keep);background:var(--keep-bg);border-radius:9px;padding:1px 5px;opacity:0;transform:scale(.5);transition:all .35s cubic-bezier(.3,1.6,.5,1)}
+.upd .stamp{opacity:1;transform:none}
+.fmt.upd{border-color:var(--keep);box-shadow:0 0 0 3px var(--keep-bg),0 8px 20px -14px rgba(60,40,10,.45)}
+.mini{position:relative;width:150px;height:68px;font:9px/1.45 var(--mono);padding:0 8px;overflow:hidden}
+.mini svg{display:block}
+.mini text{font:7.5px var(--mono);fill:var(--muted)}
+.sw{position:relative;display:inline-block}
+.sw .o,.sw .n{transition:opacity .45s,transform .45s}
+.sw .n{position:absolute;left:0;top:0;opacity:0;transform:translateY(5px);white-space:nowrap}
+.upd .sw .o{opacity:0;transform:translateY(-5px)}
+.upd .sw .n{opacity:1;transform:none}
+.strike{transition:all .4s .1s;display:block}
+.upd .strike{text-decoration:line-through;text-decoration-color:var(--lose);color:var(--lose);opacity:.6}
+.add{display:block;max-height:0;opacity:0;overflow:hidden;color:var(--keep);transition:all .45s .45s}
+.upd .add{max-height:14px;opacity:1}
+.e-old{stroke:var(--ink);stroke-width:1.2;transition:all .5s}
+.upd .e-old{stroke:var(--lose);opacity:.3;stroke-dasharray:3 3}
+.e-new{stroke:var(--keep);stroke-width:1.8;stroke-dasharray:100;stroke-dashoffset:100;transition:stroke-dashoffset .9s .3s}
+.upd .e-new{stroke-dashoffset:0}
+.nd{fill:var(--card);stroke:var(--ink);stroke-width:1}
+.nd.me{fill:var(--accent);stroke:none;transform-box:fill-box;transform-origin:center}
+.upd .nd.me{animation:pulse .9s ease}
+@keyframes pulse{40%{transform:scale(1.7)}}
+.vd{fill:#b9b0a0}
+.vm{fill:var(--accent);transition:transform 1.3s cubic-bezier(.6,0,.3,1) .1s}
+.upd .vm{transform:translate(78px,4px)}
+.vtrail{stroke:var(--accent);stroke-dasharray:2 3;opacity:0;transition:opacity .4s 1s}
+.upd .vtrail{opacity:.5}
+.srow{display:flex;justify-content:space-between;gap:4px;border-radius:3px;padding:0 2px}
+.upd .srow.hit{animation:flash 1.2s ease .2s}
+.qbar{border:1px solid var(--rule);border-radius:4px;padding:0 4px;margin-bottom:2px;color:var(--muted)}
+.sum{font:9.5px/1.4 var(--sans);white-space:normal}
+.sum .sw{display:block}
+.sum .sw .n{white-space:normal;width:134px}
+
+/* ---------- A: pipeline ---------- */
+.A .wire{fill:none;stroke:var(--rule);stroke-width:1.4}
+.A .pulse{fill:none;stroke:var(--accent);stroke-width:2.6;stroke-linecap:round}
+.A .md{font:10.5px/1.75 var(--mono);padding:8px 10px;white-space:nowrap}
+.A .md .l{border-radius:3px;padding:0 2px;transition:background .3s}
+.A .md .l.src{background:#ffe7c4}
+.A .rec{font:9.5px/1.3 var(--mono);padding:6px 9px}
+.A .row{display:grid;grid-template-columns:62px 1fr;gap:4px;padding:3px 3px;border-radius:4px;transition:background .4s}
+.A .row .k{color:var(--link)}
+.A .row .v{color:#c4bcad;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.A .row.filled .v{color:var(--ink)}
+.A .row.minted .v{color:var(--accent)}
+.A .row .mint{font:600 7.5px var(--sans);color:var(--accent);margin-left:3px;opacity:0;transition:opacity .3s}
+.A .row.minted .mint{opacity:1}
+.A .tok{position:absolute;z-index:5;font:600 9.5px var(--mono);background:var(--ink);color:var(--paper);padding:2px 7px;border-radius:99px;white-space:nowrap;transition:transform .75s cubic-bezier(.6,0,.25,1),opacity .2s;pointer-events:none}
+.A .tile{position:absolute;left:470px;width:158px;height:50px;background:var(--card);border:1px solid var(--rule);border-radius:9px;padding:5px 8px;transition:all .4s}
+.A .tile .tn{display:flex;justify-content:space-between;align-items:center;font-size:10.5px;font-weight:650;white-space:nowrap}
+.A .tile .tn small{font:9px var(--mono);color:var(--muted);font-weight:400;flex:1;margin-left:5px;overflow:hidden;text-overflow:ellipsis}
+.A .tile .d{font:9px var(--mono);margin-top:3px;height:13px;position:relative;white-space:nowrap}
+.A .tile.upd{border-color:var(--keep);box-shadow:0 0 0 3px var(--keep-bg)}
+.A .tile.hot{border-color:var(--accent)}
+
+/* ---------- B: hub ---------- */
+.B .ring{position:absolute;border:2px solid var(--accent);border-radius:50%;pointer-events:none;opacity:0}
+.B .hub{position:absolute;left:260px;top:135px;width:120px;height:120px;border-radius:50%;background:var(--ink);color:var(--paper);display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;transform:scale(0);transition:transform .55s cubic-bezier(.3,1.5,.5,1);z-index:3}
+.B .hub.on{transform:scale(1)}
+.B .hub b{font:700 22px var(--serif);letter-spacing:.5px}
+.B .hub small{font:8.5px var(--mono);opacity:.75;margin-top:2px}
+.B .hub .rv{margin-top:6px;font:600 9px var(--mono);background:var(--accent);padding:1px 7px;border-radius:9px}
+.B .page{left:200px;top:70px;width:240px;height:240px;transition:all .7s cubic-bezier(.6,0,.3,1);z-index:4;overflow:hidden}
+.B .page.suck{left:290px;top:165px;width:60px;height:60px;border-radius:50%;opacity:0}
+.B .page .md{font:11px/1.7 var(--mono);padding:9px 12px;white-space:nowrap}
+.B .fmt{opacity:0;transform:scale(.6);transition:opacity .4s,transform .45s cubic-bezier(.3,1.4,.5,1),border-color .4s,box-shadow .4s}
+.B .fmt.in{opacity:1;transform:none}
+.B .spoke{stroke:var(--rule);stroke-width:1.2;stroke-dasharray:3 4;opacity:0;transition:opacity .5s}
+.B .spoke.in{opacity:1}
+.B .spoke.hit{stroke:var(--keep);stroke-dasharray:none}
+
+/* ---------- C: morph ---------- */
+.C .big{left:120px;top:40px;width:400px;height:300px;transition:all .8s cubic-bezier(.6,0,.3,1);overflow:hidden;z-index:2}
+.C .big .ch .lbl{transition:opacity .3s}
+.C .lines{position:relative;font:10.5px var(--mono);margin:6px 12px}
+.C .ln{position:absolute;left:0;white-space:nowrap;transition:top .8s cubic-bezier(.6,0,.3,1),opacity .5s,color .5s}
+.C .ln .a,.C .ln .b{transition:opacity .45s}
+.C .ln .b{position:absolute;left:0;top:0;opacity:0}
+.C.json .ln .a{opacity:0}
+.C.json .ln .b{opacity:1}
+.C .ln.gone{opacity:0}
+.C .ln.mint{opacity:0}
+.C .ln.mint.show{opacity:1}
+.C .ln.mint .b{color:var(--accent)}
+.C .mtag{font:600 8px var(--sans);color:var(--accent);background:#fde6dc;border-radius:7px;padding:0 5px;margin-left:6px}
+.C .k{color:var(--link)}
+.C .big.small{left:245px;top:12px;width:150px;height:30px;border-radius:99px}
+.C .big.small .lines{opacity:0}
+.C .pill{position:absolute;left:245px;top:12px;width:150px;height:30px;border-radius:99px;background:var(--ink);color:var(--paper);font:600 10px var(--mono);display:flex;align-items:center;justify-content:center;gap:6px;opacity:0;transition:opacity .3s;z-index:3}
+.C .pill.on{opacity:1}
+.C .flip{position:absolute;width:190px;height:140px;perspective:700px;transition:left .8s cubic-bezier(.6,0,.3,1),top .8s cubic-bezier(.6,0,.3,1),opacity .3s;opacity:0}
+.C .flip.out{opacity:1}
+.C .flip .inner{position:absolute;inset:0;transform-style:preserve-3d;transition:transform .7s cubic-bezier(.5,0,.3,1)}
+.C .flip.turn .inner{transform:rotateY(180deg)}
+.C .face{position:absolute;inset:0;backface-visibility:hidden;-webkit-backface-visibility:hidden;border-radius:10px}
+.C .back{background:var(--ink);color:var(--paper);display:flex;align-items:center;justify-content:center;font:700 13px var(--serif);letter-spacing:1px;background-image:repeating-linear-gradient(45deg,rgba(255,255,255,.05) 0 6px,transparent 6px 12px)}
+.C .front{transform:rotateY(180deg)}
+.C .front .fmt{position:relative;width:190px;height:140px}
+.C .front .mini{transform:scale(1.22);transform-origin:0 0;margin-top:2px}
+
+/* ---------- D: ledger ---------- */
+.D .box{position:absolute;background:var(--card);border:1px solid var(--rule);border-radius:10px;overflow:hidden}
+.D .diff{font:10px/1.6 var(--mono);padding:6px 0}
+.D .diff div{padding:0 10px;white-space:nowrap;max-height:0;opacity:0;transition:all .35s}
+.D .diff div.on{max-height:18px;opacity:1}
+.D .diff .m{background:var(--lose-bg);color:var(--lose)}
+.D .diff .p{background:var(--keep-bg);color:var(--keep)}
+.D .term{background:var(--ink);color:#e8e2d4;border-color:var(--ink)}
+.D .term .ch{color:#9d9585;border-color:#3a3630}
+.D .log{font:9.5px/1.6 var(--mono);padding:6px 10px;white-space:nowrap}
+.D .log .g{color:#7fc8a5}.D .log .o{color:#ff9a6e}.D .log .d{color:#9d9585}
+.D table{border-collapse:collapse;width:100%;font-size:10.5px}
+.D td{padding:6px 8px;border-top:1px solid var(--rule);vertical-align:middle}
+.D tr:first-child td{border-top:none}
+.D td.nm{font-weight:650;white-space:nowrap}
+.D td.nm small{display:block;font:8.5px var(--mono);color:var(--muted);font-weight:400}
+.D .bar{height:5px;background:#ece6d9;border-radius:3px;overflow:hidden;width:58px}
+.D .bar i{display:block;height:100%;width:0;background:var(--accent);transition:width .55s ease}
+.D tr.ok .bar i{background:var(--keep)}
+.D .st{font:600 8.5px var(--mono);padding:1px 6px;border-radius:9px;background:#ece6d9;color:var(--muted);white-space:nowrap}
+.D tr.run .st{background:var(--warn-bg);color:var(--warn)}
+.D tr.ok .st{background:var(--keep-bg);color:var(--keep)}
+.D td.dt{font:8.5px var(--mono);color:var(--muted);white-space:nowrap}
+.D tr.ok td.dt{color:var(--ink)}
+.D .tl{position:absolute;left:14px;right:14px;top:338px;height:24px}
+.D .tl .track{position:absolute;left:0;right:0;top:11px;height:2px;background:var(--rule)}
+.D .tl .fill{position:absolute;left:0;top:11px;height:2px;background:var(--accent);width:0;transition:width .6s ease}
+.D .tl span{position:absolute;top:2px;transform:translateX(-50%);font:600 9px var(--mono);background:var(--paper);padding:2px 6px;border:1px solid var(--rule);border-radius:99px;color:var(--muted);transition:all .3s}
+.D .tl span.on{border-color:var(--accent);color:var(--accent)}
+.D .tally{font:9.5px var(--mono);color:var(--muted)}
+.D .tally b{color:var(--keep)}
+</style>
+</head>
+<body>
+<div class="omp" id="root"></div>
+
+<script>
+const OPTIONS = [
+  {id:'A', title:'Pipeline', blurb:'Left to right. Each line of the wiki page flies into its field in the OMP record; then the record pulses down six wires.'},
+  {id:'B', title:'Hub and ring', blurb:'The page collapses into one OMP record at the centre. A ripple goes out and each format updates as it arrives.'},
+  {id:'C', title:'Morph and deal', blurb:'The markdown rewrites itself into the OMP record in place, then the record deals out six cards that flip to show each format.'},
+  {id:'D', title:'Sync ledger', blurb:'What omp-sync actually does: the diff, the log, one row per system with progress and a receipt. Closest to the real tool.'},
+];
+
+const FORMATS = [
+  {k:'graph',   name:'Knowledge graph', sys:'graph/store.db', a:['maya ─owns→ billing','maya ─member→ payments'], dt:'node e7b9 · −owns +member edge'},
+  {k:'search',  name:'Search index',    sys:'FTS5',           a:['"owns billing"  0.91','"moved to payments"  0.93'], dt:'row reindexed · 2 terms'},
+  {k:'vector',  name:'Vector index',    sys:'embeddings',     a:['near: billing, ledger','near: payments, limits'], dt:'re-embedded · moved cluster'},
+  {k:'memory',  name:'MEMORY.md',       sys:'Claude Code',    a:['- Maya owns billing','- Maya moved to payments'], dt:'line 3 rewritten'},
+  {k:'agents',  name:'AGENTS.md',       sys:'Codex',          a:['billing → @maya','billing → @sam'], dt:'owners table updated'},
+  {k:'summary', name:'Topic summary',   sys:'team:platform',  a:['Maya runs billing','Sam now owns billing'], dt:'paragraph regenerated'},
+];
+
+function mini(k){
+  switch(k){
+    case 'graph': return `<svg width="134" height="64" viewBox="0 0 134 64">
+      <line x1="64" y1="10" x2="112" y2="14" stroke="#cfc6b4"/>
+      <line class="e-old" x1="22" y1="34" x2="112" y2="14"/>
+      <line class="e-new" x1="22" y1="34" x2="112" y2="52"/>
+      <circle class="nd" cx="64" cy="10" r="4"/><text x="58" y="24">ledger</text>
+      <circle class="nd" cx="112" cy="14" r="5"/><text x="96" y="30">billing</text>
+      <circle class="nd" cx="112" cy="52" r="5"/><text x="88" y="63">payments</text>
+      <circle class="nd me" cx="22" cy="34" r="6"/><text x="10" y="50">maya</text></svg>`;
+    case 'vector': {
+      const b=[[18,22],[30,14],[26,34],[40,26],[14,40]], p=[[96,20],[110,30],[100,40],[118,16],[122,40]];
+      return `<svg width="134" height="64" viewBox="0 0 134 64">
+        <circle cx="27" cy="28" r="20" fill="#efe9dc"/><circle cx="109" cy="29" r="20" fill="#efe9dc"/>
+        ${b.concat(p).map(([x,y])=>`<circle class="vd" cx="${x}" cy="${y}" r="2.6"/>`).join('')}
+        <line class="vtrail" x1="34" y1="28" x2="110" y2="32"/>
+        <circle class="vm" cx="32" cy="28" r="4.2"/>
+        <text x="12" y="61">billing</text><text x="92" y="61">payments</text></svg>`;
+    }
+    case 'search': return `<div class="qbar">⌕ maya</div>
+      <div class="srow hit"><span class="sw"><span class="o">maya.md owns billing</span><span class="n">maya.md → payments</span></span><span>.9</span></div>
+      <div class="srow"><span>ledger-store.md</span><span class="dim">.4</span></div>
+      <div class="srow"><span>limits.md</span><span class="dim">.1</span></div>`;
+    case 'memory': return `<span class="dim" style="display:block"># MEMORY.md</span>
+      <span class="strike">- Maya owns billing</span><span class="add">- Maya moved to payments</span>
+      <span style="display:block">- Releases ship Fridays</span>`;
+    case 'agents': return `<span class="dim" style="display:block">## Owners</span>
+      <span style="display:block">billing&nbsp;&nbsp;→ <span class="sw"><span class="o">@maya</span><span class="n" style="color:var(--keep)">@sam</span></span></span>
+      <span class="add">payments → @maya</span>
+      <span style="display:block">web&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;→ @lee</span>`;
+    case 'summary': return `<div class="sum"><span class="sw"><span class="o">Maya runs billing and reviews every ledger change.</span><span class="n">Maya moved to payments; Sam now owns billing.</span></span></div>`;
+  }
+}
+function fmtTile(f, style=''){
+  return `<div class="fmt" data-k="${f.k}" style="${style}"><div class="fh"><b>${f.name}</b><span>${f.sys}</span><i class="stamp">✓ r2</i></div><div class="mini">${mini(f.k)}</div></div>`;
+}
+function cap(steps){return `<div class="cap"><div class="steps">${steps.map(s=>`<span>${s}</span>`).join('')}</div><div class="txt"></div></div>`}
+
+// ---------- runtime ----------
+const CANCEL = Symbol('cancel');
+function makeCtl(){ return {gen:0}; }
+function waiter(ctl, g){ return ms => new Promise((res,rej)=>setTimeout(()=> ctl.gen===g ? res() : rej(CANCEL), ms/(window.__SPEED||1))); }
+function setCap(stage, i, text){
+  const c=stage.querySelector('.cap'); if(!c) return;
+  c.querySelectorAll('.steps span').forEach((s,j)=>{s.className = j<i?'done':j===i?'on':''});
+  const t=c.querySelector('.txt'); t.textContent=text; t.classList.remove('flash'); void t.offsetWidth;
+}
+async function typeInto(el, text, w, speed=34){
+  el.classList.add('caret'); el.textContent='';
+  for(const ch of text){ el.textContent+=ch; await w(speed); }
+  el.classList.remove('caret');
+}
+async function erase(el, w, speed=18){
+  el.classList.add('caret');
+  while(el.textContent.length){ el.textContent=el.textContent.slice(0,-1); await w(speed); }
+}
+async function scramble(el, final, w, frames=14){
+  const hx='0123456789abcdef';
+  for(let i=0;i<frames;i++){ el.textContent = final.replace(/[0-9a-f]/g,()=>hx[Math.random()*16|0]); await w(45); }
+  el.textContent=final;
+}
+function posIn(el, stage){ let x=0,y=0; while(el && el!==stage){ x+=el.offsetLeft; y+=el.offsetTop; el=el.offsetParent; } return {x,y}; }
+
+// ---------- A: pipeline ----------
+const A_ROWS = [
+  ['identifier','e7b9a210-billing-owner','mint'],
+  ['path','team/people/maya.md','path'],
+  ['title','Maya moved to payments','title'],
+  ['tags','["person","ownership"]','tags'],
+  ['body','Maya Chen moved to pay…','body'],
+  ['links','→ 0d6e4f88 mentions','link'],
+  ['provenance','jordan ✎ + agent ✎','mint'],
+  ['checksum','sha256:9c1f…e04a','mint'],
+];
+const tileY = i => 22 + i*57;
+function buildA(s){
+  s.innerHTML = `
+  <svg width="640" height="420" style="position:absolute;inset:0">
+    ${FORMATS.map((f,i)=>`<path class="wire" id="aw${i}" d="M430 195 C 452 195, 448 ${tileY(i)+25}, 470 ${tileY(i)+25}"/>`).join('')}
+  </svg>
+  <div class="card wiki" style="left:12px;top:70px;width:200px;height:200px">
+    <div class="ch"><span data-src="path">wiki/team/people/maya.md</span><span class="chip agent">✎ agent</span></div>
+    <div class="md">
+      <div class="l dim">---</div>
+      <div class="l" data-src="title">title: <span class="t">Maya owns billing</span></div>
+      <div class="l" data-src="tags">tags: [person, ownership]</div>
+      <div class="l dim">---</div>
+      <div class="l" data-src="body"><span class="t">Maya Chen owns billing.</span></div>
+      <div class="l"><span class="t2"></span></div>
+      <div class="l" data-src="link">See <span class="wl">[[Postgres ledger]]</span></div>
+    </div>
+  </div>
+  <div class="card rec-card" style="left:226px;top:52px;width:204px;height:290px">
+    <div class="ch"><span>omp-export/memories/</span><span class="chip">record</span></div>
+    <div class="rec">${A_ROWS.map(([k,v,src])=>`<div class="row" data-k="${k}" data-src="${src}"><span class="k">${k}</span><span class="v">—</span></div>`).join('')}</div>
+  </div>
+  ${FORMATS.map((f,i)=>`<div class="tile" data-i="${i}" style="top:${tileY(i)}px"><div class="tn">${f.name}<small>${f.sys}</small><i class="stamp">✓ r2</i></div><div class="d sw"><span class="o">${f.a[0]}</span><span class="n" style="color:var(--keep)">${f.a[1]}</span></div></div>`).join('')}
+  ${cap(['1 edit','2 convert','3 update'])}`;
+}
+async function playA(s, w){
+  buildA(s);
+  setCap(s,0,'An agent edits a page in its markdown wiki.');
+  await w(700);
+  const agent=s.querySelector('.chip.agent'); agent.classList.add('on');
+  const t=s.querySelector('[data-src=title] .t'), b=s.querySelector('[data-src=body] .t'), b2=s.querySelector('.t2');
+  await erase(t,w); await typeInto(t,'Maya moved to payments',w,32);
+  await erase(b,w,12); await typeInto(b,'Maya Chen moved to payments.',w,26);
+  await typeInto(b2,'Sam owns billing now.',w,26);
+  await w(400);
+  setCap(s,1,'Each line lands in its OMP field. Identity, provenance and checksum are minted.');
+  for(const row of s.querySelectorAll('.row')){
+    const src=row.dataset.src, k=row.dataset.k, val=A_ROWS.find(r=>r[0]===k)[1];
+    const v=row.querySelector('.v');
+    if(src==='mint'){
+      row.classList.add('minted','flash');
+      if(k==='checksum'){ await scramble(v,val,w,12); } else { v.textContent=val; }
+      v.insertAdjacentHTML('beforeend','');
+      row.insertAdjacentHTML('beforeend','');
+      await w(260); continue;
+    }
+    const from=s.querySelector(`.wiki [data-src="${src}"]`);
+    from.classList.add('src');
+    const p0=posIn(from,s), p1=posIn(v,s);
+    const tok=document.createElement('div'); tok.className='tok'; tok.textContent=k;
+    tok.style.left=p0.x+'px'; tok.style.top=p0.y+'px'; s.appendChild(tok);
+    await w(30);
+    tok.style.transform=`translate(${p1.x-p0.x}px,${p1.y-p0.y}px)`;
+    await w(720);
+    tok.style.opacity=0; v.textContent=val; row.classList.add('filled','flash'); from.classList.remove('src');
+    await w(140); tok.remove();
+  }
+  const rc=s.querySelector('.rec-card .chip'); rc.textContent='r2'; rc.classList.add('r2');
+  await w(500);
+  setCap(s,2,'The record goes down every wire. Each format re-renders it and writes a receipt.');
+  const svg=s.querySelector('svg');
+  for(let i=0;i<FORMATS.length;i++){
+    const path=s.querySelector('#aw'+i), L=path.getTotalLength();
+    const p=path.cloneNode(); p.removeAttribute('id'); p.setAttribute('class','pulse'); svg.appendChild(p);
+    p.style.strokeDasharray=`14 ${L+20}`;
+    p.animate([{strokeDashoffset:14},{strokeDashoffset:-L}],{duration:480,easing:'ease-in',fill:'forwards'});
+    const tile=s.querySelector(`.tile[data-i="${i}"]`); tile.classList.add('hot');
+    setTimeout(()=>{tile.classList.remove('hot'); tile.classList.add('upd'); path.style.stroke='var(--keep)'},450);
+    await w(260);
+  }
+  await w(1100);
+  setCap(s,3,'Six formats, one record, six receipts.');
+}
+
+// ---------- B: hub ----------
+const B_POS = [0,60,120,180,240,300].map(deg=>{const r=deg*Math.PI/180;return {x:320+232*Math.cos(r), y:195+132*Math.sin(r)}});
+function buildB(s){
+  s.innerHTML = `
+  <svg width="640" height="420" style="position:absolute;inset:0">${B_POS.map((p,i)=>`<line class="spoke" data-i="${i}" x1="320" y1="195" x2="${p.x}" y2="${p.y}"/>`).join('')}</svg>
+  ${FORMATS.map((f,i)=>fmtTile(f,`left:${B_POS[i].x-75}px;top:${B_POS[i].y-47}px`)).join('')}
+  <div class="hub"><b>OMP</b><small>e7b9a210-billing-owner</small><span class="rv">r1</span></div>
+  <div class="card page">
+    <div class="ch"><span>wiki/team/people/maya.md</span><span class="chip agent">✎ agent</span></div>
+    <div class="md">
+      <div class="dim">---</div>
+      <div>title: <span class="t">Maya owns billing</span></div>
+      <div>tags: [person, ownership]</div>
+      <div class="dim">---</div>
+      <div class="t3">Maya Chen owns billing.</div>
+      <div class="t4"></div>
+      <div>See <span class="wl">[[Postgres for the ledger]]</span></div>
+    </div>
+  </div>
+  ${cap(['1 edit','2 convert','3 update'])}`;
+}
+async function playB(s, w){
+  buildB(s);
+  setCap(s,0,'An agent rewrites a page in its markdown wiki.');
+  await w(600);
+  s.querySelector('.chip.agent').classList.add('on');
+  const t=s.querySelector('.page .t'), b=s.querySelector('.t3'), b2=s.querySelector('.t4');
+  await erase(t,w); await typeInto(t,'Maya moved to payments',w,30);
+  await erase(b,w,12); await typeInto(b,'Maya Chen moved to payments.',w,24);
+  await typeInto(b2,'Sam owns billing now.',w,24);
+  await w(450);
+  setCap(s,1,'omp-sync converts it to one OMP record: revision r2, same identifier.');
+  const hub=s.querySelector('.hub'); hub.classList.add('on');
+  s.querySelector('.page').classList.add('suck');
+  await w(650);
+  const rv=hub.querySelector('.rv'); rv.textContent='r2'; rv.classList.add('flash');
+  s.querySelectorAll('.fmt').forEach((f,i)=>setTimeout(()=>f.classList.add('in'),i*70));
+  s.querySelectorAll('.spoke').forEach(l=>l.classList.add('in'));
+  await w(900);
+  setCap(s,2,'The change ripples out. Each format updates in its own shape.');
+  const ring=document.createElement('div'); ring.className='ring'; s.insertBefore(ring, hub);
+  ring.animate([{left:'320px',top:'195px',width:'0px',height:'0px',opacity:.9},{left:'40px',top:'35px',width:'560px',height:'320px',opacity:0}],{duration:1500,easing:'ease-out'});
+  const order=[...B_POS.keys()];
+  for(const i of order){
+    setTimeout(()=>{ s.querySelectorAll('.fmt')[i].classList.add('upd'); s.querySelector(`.spoke[data-i="${i}"]`).classList.add('hit'); }, 380+i*120);
+  }
+  await w(380+6*120+1600);
+  setCap(s,3,'Graph edge swapped, vector moved cluster, files rewritten. Six receipts.');
+}
+
+// ---------- C: morph ----------
+// [mdText, jsonText, mdLine, jsonLine, kind]
+const C_LINES = [
+  ['---', '{', 0, 0],
+  ['', '  <span class="k">"identifier"</span>: "e7b9a210-billing-owner",<span class="mtag">minted</span>', null, 1, 'mint'],
+  ['', '  <span class="k">"path"</span>: "team/people/maya.md",', null, 2, 'mint'],
+  ['title: <span class="t"></span>', '  <span class="k">"title"</span>: "Maya moved to payments",', 1, 3],
+  ['tags: [person, ownership]', '  <span class="k">"tags"</span>: ["person", "ownership"],', 2, 4],
+  ['---', '', 3, 4, 'gone'],
+  ['<span class="t3"></span>', '  <span class="k">"body"</span>: "Maya Chen moved to payments. Sam owns…",', 4, 5],
+  ['<span class="t4"></span>', '', 5, 5, 'gone'],
+  ['See <span class="wl">[[Postgres for the ledger]]</span>', '  <span class="k">"links"</span>: [{"target": "0d6e4f88", "rel": "mentions"}],', 6, 6],
+  ['', '  <span class="k">"provenance"</span>: [jordan authored, agent edited],<span class="mtag">minted</span>', null, 7, 'mint'],
+  ['', '  <span class="k">"checksum"</span>: "<span class="cs">sha256:9c1f04be…e04a</span>"<span class="mtag">minted</span>', null, 8, 'mint'],
+  ['', '}', null, 9, 'mint'],
+];
+const C_GRID = FORMATS.map((f,i)=>({x:20+(i%3)*205, y:58+Math.floor(i/3)*155}));
+function buildC(s){
+  s.innerHTML = `
+  <div class="card big">
+    <div class="ch"><span class="lbl">wiki/team/people/maya.md</span><span class="chip agent">✎ agent</span></div>
+    <div class="lines">${C_LINES.map(([a,b,mi,ji,kind],n)=>`<div class="ln ${kind==='mint'?'mint':''}" data-n="${n}" style="top:${(mi??ji)*21}px"><span class="a">${a}</span><span class="b">${b}</span></div>`).join('')}</div>
+  </div>
+  <div class="pill">OMP · e7b9a210 · <span style="color:#ff9a6e">r2</span></div>
+  ${FORMATS.map((f,i)=>`<div class="flip" data-i="${i}" style="left:225px;top:12px"><div class="inner"><div class="face back">OMP r2</div><div class="face front">${fmtTile(f)}</div></div></div>`).join('')}
+  ${cap(['1 edit','2 convert','3 update'])}`;
+}
+async function playC(s, w){
+  s.classList.remove('json'); buildC(s);
+  const t=s.querySelector('.t'), b=s.querySelector('.t3'), b2=s.querySelector('.t4');
+  t.textContent='Maya owns billing'; b.textContent='Maya Chen owns billing.';
+  setCap(s,0,'An agent edits its wiki page.');
+  await w(600);
+  s.querySelector('.chip.agent').classList.add('on');
+  await erase(t,w); await typeInto(t,'Maya moved to payments',w,30);
+  await erase(b,w,12); await typeInto(b,'Maya Chen moved to payments.',w,24);
+  await typeInto(b2,'Sam owns billing now.',w,24);
+  await w(500);
+  setCap(s,1,'The same text rewrites itself as an OMP record. New fields are minted.');
+  s.querySelector('.chip.agent').classList.remove('on');
+  const lbl=s.querySelector('.big .lbl'); lbl.style.opacity=0;
+  const lines=[...s.querySelectorAll('.ln')];
+  lines.forEach((el,n)=>{ const [, , , ji, kind]=C_LINES[n]; el.style.top=(ji*21)+'px'; if(kind==='gone') el.classList.add('gone'); });
+  await w(250);
+  s.classList.add('json');
+  lbl.textContent='omp-export/memories/e7b9a210….json'; lbl.style.opacity=1;
+  await w(500);
+  for(const el of lines.filter(l=>l.classList.contains('mint'))){
+    el.classList.add('show'); el.classList.add('flash');
+    const cs=el.querySelector('.cs'); if(cs) await scramble(cs,'sha256:9c1f04be…e04a',w,12);
+    await w(230);
+  }
+  await w(900);
+  setCap(s,2,'The record deals itself out. Each card flips to its own format.');
+  s.querySelector('.big').classList.add('small');
+  await w(500);
+  s.querySelector('.pill').classList.add('on');
+  const flips=[...s.querySelectorAll('.flip')];
+  flips.forEach((f,i)=>setTimeout(()=>{ f.classList.add('out'); f.style.left=C_GRID[i].x+'px'; f.style.top=C_GRID[i].y+'px'; }, i*90));
+  await w(6*90+850);
+  for(const f of flips){ f.classList.add('turn'); await w(150); }
+  await w(600);
+  for(const f of flips){ f.querySelector('.fmt').classList.add('upd'); await w(170); }
+  await w(1300);
+  setCap(s,3,'One record, six renderings, all at r2.');
+}
+
+// ---------- D: ledger ----------
+function buildD(s){
+  s.innerHTML = `
+  <div class="box" style="left:12px;top:12px;width:262px;height:122px">
+    <div class="ch"><span>wiki/team/people/maya.md</span><span class="chip agent">✎ agent</span></div>
+    <div class="diff">
+      <div class="m">- title: Maya owns billing</div>
+      <div class="p">+ title: Maya moved to payments</div>
+      <div class="m">- Maya Chen owns billing.</div>
+      <div class="p">+ Maya Chen moved to payments.</div>
+      <div class="p">+ Sam owns billing now.</div>
+    </div>
+  </div>
+  <div class="box term" style="left:12px;top:144px;width:262px;height:184px">
+    <div class="ch"><span>omp-sync</span><span>watching 4 folders</span></div>
+    <div class="log"></div>
+  </div>
+  <div class="box" style="left:286px;top:12px;width:342px;height:316px">
+    <div class="ch"><span>import r2 → every system</span><span class="tally">0/6</span></div>
+    <table>${FORMATS.map((f,i)=>`<tr data-i="${i}"><td class="nm">${f.name}<small>${f.sys}</small></td><td><div class="bar"><i></i></div></td><td><span class="st">waiting</span></td></tr><tr data-i="${i}" class="sub"><td colspan="3" class="dt" style="border-top:none;padding-top:0">${f.dt}</td></tr>`).join('').replace(/<tr data-i="(\d)" class="sub">/g,'<tr data-sub="$1">')}</table>
+  </div>
+  <div class="tl"><div class="track"></div><div class="fill"></div>
+    <span style="left:10%">edit</span><span style="left:38%">export r2</span><span style="left:66%">import</span><span style="left:92%">receipts</span></div>
+  ${cap(['1 edit','2 convert','3 update'])}`;
+  s.querySelectorAll('tr[data-sub] td').forEach(td=>td.style.opacity=.0);
+}
+async function logLine(s, html, w, ms=260){ const l=s.querySelector('.log'); l.insertAdjacentHTML('beforeend',`<div>${html}</div>`); await w(ms); return l.lastElementChild; }
+async function playD(s, w){
+  buildD(s);
+  const tl=[...s.querySelectorAll('.tl span')], fill=s.querySelector('.tl .fill');
+  const stage=(i)=>{ tl.forEach((t,j)=>t.classList.toggle('on',j<=i)); fill.style.width=[10,38,66,92][i]+'%'; };
+  setCap(s,0,'The agent saves an edit to its wiki page.'); stage(0);
+  await w(500);
+  s.querySelector('.chip.agent').classList.add('on');
+  for(const d of s.querySelectorAll('.diff div')){ d.classList.add('on'); await w(330); }
+  await w(300);
+  setCap(s,1,'omp-sync parses it and writes revision r2 to omp-export/.'); stage(1);
+  await logLine(s,'<span class="d">09:58:21</span> wiki  maya.md <span class="o">changed</span>',w,380);
+  await logLine(s,'→ front matter, body, [[links]]',w,320);
+  await logLine(s,'→ id  e7b9a210-billing-owner',w,320);
+  await logLine(s,'→ prov +agent:edited',w,320);
+  const cs=await logLine(s,'→ <span class="cs"></span>',w,10);
+  await scramble(cs.querySelector('.cs'),'sha256 9c1f04be…e04a',w,12);
+  await logLine(s,'<span class="g">✓ wrote</span> memories/e7b9a210….json  <span class="o">r2</span>',w,500);
+  setCap(s,2,'Every other system imports r2 and returns a receipt.'); stage(2);
+  const tally=s.querySelector('.tally');
+  for(let i=0;i<FORMATS.length;i++){
+    const tr=s.querySelector(`tr[data-i="${i}"]`), st=tr.querySelector('.st'), bar=tr.querySelector('.bar i');
+    tr.classList.add('run'); st.textContent='importing'; bar.style.width='100%';
+    s.querySelector(`tr[data-sub="${i}"] td`).style.transition='opacity .4s'; s.querySelector(`tr[data-sub="${i}"] td`).style.opacity=1;
+    await w(380);
+    tr.classList.remove('run'); tr.classList.add('ok'); st.textContent='✓ imported';
+    tally.innerHTML=`<b>${i+1}</b>/6 receipts`;
+    if(i%2===1) await logLine(s,`<span class="g">receipt</span> ${FORMATS[i-1].k}, ${FORMATS[i].k} imported`,w,40);
+  }
+  stage(3);
+  await w(400);
+  setCap(s,3,'6 imported · 0 conflicts · 0 rejected.');
+}
+
+// ---------- mount ----------
+const PLAYERS={A:playA,B:playB,C:playC,D:playD};
+const root=document.getElementById('root');
+for(const o of OPTIONS){
+  root.insertAdjacentHTML('beforeend',`<section class="panel"><div class="phead"><span class="letter">${o.id}</span><div class="tt"><h2>${o.title}</h2><p>${o.blurb}</p></div><button>↻ Replay</button></div><div class="vp"><div class="stage ${o.id}"></div></div></section>`);
+  const sec=root.lastElementChild, vp=sec.querySelector('.vp'), stage=sec.querySelector('.stage'), ctl=makeCtl();
+  new ResizeObserver(()=>{ stage.style.transform=`scale(${vp.clientWidth/640})`; }).observe(vp);
+  const run=async()=>{
+    const g=++ctl.gen, w=waiter(ctl,g);
+    try{ while(true){ await PLAYERS[o.id](stage,w); await w(3200); } }
+    catch(e){ if(e!==CANCEL) console.error(e); }
+  };
+  sec.querySelector('button').onclick=run;
+  run();
+}
+</script>
+</body>
+</html>

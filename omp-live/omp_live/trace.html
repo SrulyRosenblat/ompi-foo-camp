@@ -1,0 +1,323 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Trace a memory</title>
+<style>
+  :root { --stone:#d9d5cc; --stone-2:#cfcac0; --frame:#f4f2ed; --ink:#232019; --ink-2:#6a655b; --edge:#b3ada1; --ok:#2f7d4f; --warn:#b2641a; --bad:#b3362f; --info:#2a5d9f; --flash:#fff3b0; }
+  * { box-sizing: border-box; }
+  html, body { height: 100%; margin: 0; }
+  body { background: var(--stone); color: var(--ink); font: 13px/1.45 "Avenir Next", "Segoe UI", "Helvetica Neue", Arial, sans-serif; display: grid; grid-template-rows: 46px 1fr; height: 100vh; }
+  header { display: flex; align-items: center; gap: 14px; padding: 0 18px; }
+  header h1 { font-size: 17px; font-weight: 600; margin: 0; }
+  header a { color: var(--info); text-decoration: none; }
+  header select { font: inherit; font-size: 13px; padding: 4px 8px; border: 1px solid var(--edge); border-radius: 5px; background: var(--frame); max-width: 420px; }
+  header .status { margin-left: auto; color: var(--ink-2); }
+  header button { font: inherit; font-size: 12px; background: var(--frame); border: 1px solid var(--edge); border-radius: 5px; padding: 4px 10px; cursor: pointer; }
+  main { display: flex; flex-direction: column; gap: 10px; padding: 0 10px 10px; min-height: 0; overflow: auto; }
+  .flow { display: grid; grid-template-columns: 1fr 52px 1fr 52px 1fr 52px 1fr; gap: 0; height: 420px; padding-top: 10px; }
+  main > * { flex-shrink: 0; }
+  .receipts { max-height: 160px; }
+  .fields { margin-top: 8px; }
+  /* journey: how the latest change travelled */
+  .journey { display: flex; align-items: stretch; gap: 0; padding: 10px 2px 2px; }
+  .jstep { flex: 1; min-width: 0; border: 1px solid var(--edge); border-top: 2px solid var(--c, var(--edge)); border-radius: 8px; background: var(--frame); padding: 7px 10px; }
+  .jstep b { display: block; font-size: 12.5px; color: var(--ink); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .jstep span { display: block; font-size: 11.5px; color: var(--ink-2); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .jstep.ok span:first-of-type { color: var(--ok); }
+  .jstep.wait { opacity: .55; } .jstep.wait span:first-of-type { color: var(--warn); }
+  .jstep.flash { animation: flash 1.2s ease-out; }
+  .jarrow { flex: none; width: 22px; display: flex; align-items: center; justify-content: center; color: var(--ink-2); }
+  .jnote { margin: 4px 4px 0; font-size: 11.5px; color: var(--ink-2); }
+  /* parts: one line each */
+  .parts { border: 1px solid var(--edge); border-radius: 10px; background: var(--frame); overflow: hidden; }
+  .phead, .prow > summary { display: grid; grid-template-columns: 96px minmax(0,1fr) repeat(4, 64px); align-items: center; gap: 8px; padding: 0 12px; }
+  .phead { height: 30px; font-size: 11.5px; color: var(--ink-2); border-bottom: 1px solid var(--edge); background: var(--stone-2); }
+  .phead i { display: inline-block; width: 7px; height: 7px; border-radius: 50%; margin-right: 5px; }
+  .phead .sys { text-align: center; white-space: nowrap; }
+  .prow { border-bottom: 1px solid rgba(255,255,255,.05); }
+  .prow:last-child { border-bottom: 0; }
+  .prow > summary { list-style: none; cursor: pointer; min-height: 34px; padding-top: 4px; padding-bottom: 4px; }
+  .prow > summary::-webkit-details-marker { display: none; }
+  .prow > summary:hover { background: rgba(255,255,255,.03); }
+  .prow[open] > summary { background: rgba(255,255,255,.04); }
+  .prow .part { font-weight: 600; font-size: 12.5px; color: var(--ink); }
+  .prow .part::before { content: "▸"; display: inline-block; width: 12px; color: var(--ink-2); font-size: 10px; transition: transform .15s; }
+  .prow[open] .part::before { transform: rotate(90deg); }
+  .prow .val { font-size: 13px; color: var(--ink); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .prow .val.none { color: var(--ink-2); font-style: italic; }
+  .prow .val a, .detail a { color: var(--info); text-decoration: none; }
+  .mark { text-align: center; font-size: 13px; font-weight: 700; }
+  .mark.keep { color: var(--ok); } .mark.shape { color: #ac9dff; } .mark.drop { color: #5d636e; } .mark.diff { color: var(--warn); }
+  .prow.flash > summary { animation: flash 1.2s ease-out; }
+  .detail { padding: 6px 12px 12px 116px; display: grid; gap: 8px; }
+  .detail .full { font-size: 13px; line-height: 1.55; color: var(--ink); white-space: pre-wrap; max-height: 160px; overflow: auto; }
+  .detail .per { display: grid; grid-template-columns: repeat(4, minmax(0,1fr)); gap: 8px; }
+  .detail .per div { font-size: 11.5px; color: var(--ink-2); border-left: 2px solid var(--c); padding-left: 8px; }
+  .detail .per b { display: block; color: var(--ink); font-weight: 600; }
+  .legend { font-size: 11.5px; color: var(--ink-2); margin: 0 4px; }
+  .legend span { margin-right: 12px; }
+  details.raw > summary { cursor: pointer; color: var(--ink-2); padding: 4px; font-size: 12.5px; }
+  details.raw > summary:hover { color: var(--ink); }
+  .stage { display: grid; grid-template-rows: 26px 1fr; border: 1px solid var(--edge); border-radius: 7px; overflow: hidden; background: var(--frame); min-height: 0; }
+  .stage .bar { display: flex; align-items: center; gap: 6px; padding: 0 10px; font-size: 12px; color: var(--ink-2); background: var(--stone-2); border-bottom: 1px solid var(--edge); white-space: nowrap; overflow: hidden; }
+  .stage .bar b { color: var(--ink); font-weight: 600; }
+  .stage .bar .n { margin-left: auto; overflow: hidden; text-overflow: ellipsis; font-family: ui-monospace, Menlo, monospace; font-size: 11px; }
+  .stage pre { margin: 0; padding: 10px 12px; overflow: auto; font: 11.5px/1.5 ui-monospace, Menlo, Consolas, monospace; white-space: pre-wrap; word-break: break-word; min-height: 0; }
+  .stage pre.flash { animation: flash 1.2s ease-out; }
+  @keyframes flash { from { background: var(--flash); } to { background: transparent; } }
+  @media (prefers-reduced-motion: reduce) { .stage pre.flash { animation: none; background: var(--flash); } }
+  .stage .missing { padding: 14px 12px; color: var(--ink-2); }
+  .arrow { display: flex; flex-direction: column; align-items: center; justify-content: center; color: var(--ink-2); font-size: 10.5px; gap: 2px; }
+  .arrow svg { width: 18px; height: 18px; stroke: var(--ink-2); fill: none; stroke-width: 1.8; }
+  .arrow.both svg:last-child { transform: rotate(180deg); }
+  .k { color: #7a4a9a; } .s { color: #1f6b3a; } .num { color: #a3462b; } .c { color: var(--ink-2); }
+  .fm { color: #3a5a88; }
+  .row { display: grid; grid-template-columns: 110px 1fr; gap: 0 10px; padding: 3px 0; border-bottom: 1px solid #ebe7df; }
+  .row .l { color: var(--ink-2); }
+  .edge-row { padding: 2px 0; }
+  .edge-row .rel { font-family: ui-monospace, Menlo, monospace; color: var(--info); }
+  .edge-row .carrier { color: var(--ink-2); }
+  .bottom { display: grid; grid-template-columns: 1fr 360px; gap: 10px; min-height: 0; }
+  .card { background: var(--frame); border: 1px solid var(--edge); border-radius: 7px; overflow: auto; min-height: 0; }
+  .card h2 { font-size: 12px; font-weight: 600; margin: 0; padding: 7px 12px; color: var(--ink-2); background: var(--stone-2); border-bottom: 1px solid var(--edge); position: sticky; top: 0; }
+  table { border-collapse: collapse; width: 100%; font-size: 12px; }
+  th { text-align: left; font-weight: 600; color: var(--ink-2); padding: 5px 10px; border-bottom: 1px solid var(--edge); background: var(--frame); position: sticky; top: 29px; }
+  td { padding: 4px 10px; border-bottom: 1px solid #ebe7df; vertical-align: top; }
+  td.f { font-family: ui-monospace, Menlo, monospace; color: var(--ink); white-space: nowrap; }
+  td.drop { color: var(--ink-2); font-style: italic; }
+  td.keep { color: var(--ok); }
+  td.shape { color: var(--info); }
+  .rc { padding: 4px 12px; border-bottom: 1px solid #ebe7df; font-size: 12px; display: grid; grid-template-columns: 56px 56px 1fr; gap: 8px; }
+  .rc .t { color: var(--ink-2); font-family: ui-monospace, Menlo, monospace; }
+  .rc i { display: inline-block; width: 8px; height: 8px; border-radius: 50%; margin-right: 5px; }
+  .o-accepted i, .o-transformed i, .o-resolved i { background: var(--ok); } .o-rejected i, .o-forgotten i { background: var(--bad); } .o-conflict i { background: var(--warn); } .o-omitted i { background: var(--edge); }
+  .empty { padding: 14px 12px; color: var(--ink-2); }
+</style>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,600;1,9..144,400&family=Hanken+Grotesk:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap">
+<style id="signal-theme">
+  /* ---- signal theme: same tokens as animations/site-conversion-options.html ---- */
+  :root { --stone:#0b0c0f; --stone-2:#161920; --frame:#12141a; --ink:#ece8e0; --ink-2:#8f95a0; --edge:#2a2f39;
+          --ok:#6fdc9b; --warn:#f3b54a; --bad:#ff6b6b; --info:#8fc3ff; --flash:rgba(255,106,69,.3);
+          --wiki:#f3b54a; --omp:#ff6a45; --graph:#4fd6e0; --search:#ff8db4; --agent:#8fc3ff;
+          --ui:"Hanken Grotesk","Avenir Next","Segoe UI",sans-serif; --display:"Fraunces","Iowan Old Style",Georgia,serif; --mono:"JetBrains Mono",ui-monospace,Menlo,monospace; }
+  body { font-family: var(--ui); -webkit-font-smoothing: antialiased;
+         background: radial-gradient(900px 420px at 90% -10%, rgba(255,106,69,.10), transparent 60%), radial-gradient(rgba(255,255,255,.04) 1px, transparent 1.2px) 0 0/18px 18px, var(--stone); }
+  header h1 { font-family: var(--display); font-weight: 600; letter-spacing: -.01em; }
+  header h1 small { font-family: var(--ui); }
+  header .origin, header .n { font-family: var(--mono); }
+  .card, .pane, .stage { border-color: var(--edge) !important; border-radius: 10px !important; box-shadow: 0 16px 34px -26px #000; }
+  .card h2, .pane .bar, .stage .bar { background: #161920 !important; border-color: var(--edge) !important; }
+  td, th, .row, .rc, .side .c { border-color: rgba(255,255,255,.05) !important; }
+  td.t, .rc .t, td.f, td.id { font-family: var(--mono) !important; }
+  button { background: #1c2028; border-color: #353b47; color: var(--ink); border-radius: 999px; }
+  button:hover { border-color: var(--omp); color: #fff; }
+  .o-accepted i, .o-transformed i, .o-resolved i { box-shadow: 0 0 8px var(--ok); }
+  .o-rejected i, .o-forgotten i { box-shadow: 0 0 8px var(--bad); }
+  ::selection { background: rgba(255,106,69,.35); }
+  ::-webkit-scrollbar { width: 8px; height: 8px } ::-webkit-scrollbar-thumb { background: #2a2f39; border-radius: 8px } ::-webkit-scrollbar-track { background: transparent }
+
+  .k { color: #8fc3ff; } .s { color: #e9d9ae; } .num { color: #ffb86b; } .c { color: #6b717c; } .fm { color: #f5d08e; }
+  .flow > .stage:nth-child(1) { border-top: 2px solid var(--wiki) !important; }
+  .flow > .stage:nth-child(3) { border-top: 2px solid var(--omp) !important; }
+  .flow > .stage:nth-child(5) { border-top: 2px solid var(--graph) !important; }
+  .flow > .stage:nth-child(7) { border-top: 2px solid var(--search) !important; }
+  .stage { background: #12141a; }
+  .stage pre { font-family: var(--mono); color: var(--ink); }
+  .arrow svg { stroke: #4a505c; } .arrow { font-family: var(--mono); }
+  td.keep { color: #6fdc9b; } td.shape { color: #ac9dff; } td.drop { color: #666c77; }
+  .edge-row .rel { color: var(--graph); }
+  header select { background: #1c2028; color: var(--ink); border-color: #353b47; }
+  header a { color: var(--omp); }
+  th { background: #12141a; }
+</style>
+</head>
+<body>
+<header>
+  <h1>Trace a memory</h1>
+  <select id="pick"></select>
+  <span class="status" id="status"></span>
+  <a href="/" id="back">Back to the four systems</a>
+  <button onclick="fs()" id="fsb" title="Full screen (F)">Full screen</button>
+</header>
+<main>
+  <div class="journey" id="journey"></div>
+  <div class="jnote" id="jnote"></div>
+  <div class="parts" id="parts"></div>
+  <div class="legend"><span><b class="mark keep">✓</b> kept as is</span><span><b class="mark shape">◇</b> kept in its own shape</span><span><b class="mark drop">–</b> not kept or not used</span><span><b class="mark diff">≠</b> differs</span> · click a row for detail</div>
+  <div class="card receipts"><h2>What happened to this memory, newest first</h2><div id="receipts"></div></div>
+  <details class="raw"><summary>Show every field and the raw files each system stores</summary>
+  <div class="card fields"><h2>Every field in the record, and what each system does with it</h2><table id="fields"></table></div>
+  <div class="flow">
+    <div class="stage"><div class="bar"><b>Wiki</b> the markdown file <span class="n" id="n-wiki"></span></div><pre id="wiki"></pre></div>
+    <div class="arrow both"><svg viewBox="0 0 24 24"><path d="M4 12h16m-6-6 6 6-6 6"/></svg>export<br>import<svg viewBox="0 0 24 24"><path d="M4 12h16m-6-6 6 6-6 6"/></svg></div>
+    <div class="stage"><div class="bar"><b>OMP export</b> the interchange record <span class="n" id="n-export"></span></div><pre id="export"></pre></div>
+    <div class="arrow both"><svg viewBox="0 0 24 24"><path d="M4 12h16m-6-6 6 6-6 6"/></svg>import<br>export<svg viewBox="0 0 24 24"><path d="M4 12h16m-6-6 6 6-6 6"/></svg></div>
+    <div class="stage"><div class="bar"><b>Graph</b> node and edges <span class="n" id="n-graph"></span></div><pre id="graph"></pre></div>
+    <div class="arrow both"><svg viewBox="0 0 24 24"><path d="M4 12h16m-6-6 6 6-6 6"/></svg>import<br>export<svg viewBox="0 0 24 24"><path d="M4 12h16m-6-6 6 6-6 6"/></svg></div>
+    <div class="stage"><div class="bar"><b>Search</b> the indexed row <span class="n" id="n-search"></span></div><pre id="search"></pre></div>
+  </div>
+  </details>
+</main>
+<script>
+const esc = s => String(s).replace(/[&<>"]/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]));
+const $ = id => document.getElementById(id);
+let animateTrace=true;
+let id = new URLSearchParams(location.search).get("id"), lastTxt = {}, lastList = "";
+if (new URLSearchParams(location.search).get("embedded")) { document.getElementById("back").remove(); document.getElementById("fsb").remove(); document.body.style.gridTemplateRows = "40px 1fr"; }
+
+function hiJson(obj) {
+  return esc(JSON.stringify(obj, null, 2))
+    .replace(/"([^"]+)":/g, '<span class="k">"$1"</span>:')
+    .replace(/: "([^"]*)"/g, ': <span class="s">"$1"</span>')
+    .replace(/: (\d+|true|false|null)/g, ': <span class="num">$1</span>');
+}
+function hiMd(text) {
+  const m = text.match(/^---\n([\s\S]*?)\n---\n?([\s\S]*)$/);
+  if (!m) return esc(text);
+  return `<span class="c">---</span>\n<span class="fm">${esc(m[1])}</span>\n<span class="c">---</span>\n${esc(m[2]).replace(/\[\[([^\]]+)\]\]/g, '<span class="s">[[$1]]</span>')}`;
+}
+function set(el, html, count) {
+  const node = $(el);
+  if (animateTrace && lastTxt[el] !== undefined && lastTxt[el] !== html) { node.classList.remove("flash"); void node.offsetWidth; node.classList.add("flash"); }
+  if (lastTxt[el] !== html) node.innerHTML = html;
+  lastTxt[el] = html;
+  $("n-" + el).textContent = count || "";
+}
+function classify(text) { return /not used|not saved|only counts|not drawn/.test(text) ? "drop" : /edges|nodes|label|filter|ring|fades|flagged|expand/.test(text) ? "shape" : "keep"; }
+
+function frontMatter(text) {
+  const m = (text || "").match(/^---\n([\s\S]*?)\n---\n?([\s\S]*)$/);
+  const fm = m ? m[1] : "", body = (m ? m[2] : text || "").trim();
+  const unq = v => v.trim().replace(/^['"]|['"]$/g, "");
+  const title = (fm.match(/^title:(.*)$/m) || [])[1];
+  let tags = (fm.match(/^tags:\s*\[(.*)\]\s*$/m) || [])[1]?.split(",").map(unq).filter(Boolean);
+  if (!tags) { const b = fm.match(/^tags:\s*\n((?:\s*-.*\n?)*)/m); tags = b ? b[1].split("\n").map(l => l.replace(/^\s*-\s*/, "")).map(unq).filter(Boolean) : []; }
+  const version = (fm.match(/^version:\s*\n\s+value:\s*(\d+)/m) || fm.match(/^version:\s*(\d+)/m) || [])[1];
+  return { title: title === undefined ? undefined : unq(title), tags, version, body };
+}
+let titles = {};
+const name = t => titles[t] || t.split("/").pop().replace(/\.md$/, "");
+const clip = (s, n) => { s = String(s ?? ""); return s.length > n ? s.slice(0, n) + "…" : s; };
+const SYS = [["wiki", "Wiki", "--wiki"], ["export", "OMP", "--omp"], ["graph", "Graph", "--graph"], ["search", "Search", "--search"]];
+const lastRow = {}; let lastJourney = "";
+// Markdown → readable text: drop the repeated title heading, keep link names, lose the syntax.
+function readable(md, title, path) {
+  let t = (md || "").replace(/^#\s+(.*)\n+/, (m, h) => h.trim() === (title || "").trim() ? "" : h + "\n\n");
+  return esc(t)
+    .replace(/\[([^\]]+)\]\(([^)\s]+)\)/g, (m, txt, href) => `<a title="${esc(href)}">${txt}</a>`)
+    .replace(/\*\*([^*]+)\*\*/g, "$1").replace(/(^|\s)[*_]([^*_]+)[*_]/g, "$1$2")
+    .replace(/^#{1,6}\s+/gm, "").replace(/`([^`]+)`/g, "$1").trim();
+}
+function ago(at) { const s = Math.max(0, (Date.now() - Date.parse(at)) / 1000); return s < 60 ? `${Math.round(s)}s ago` : s < 3600 ? `${Math.round(s / 60)} min ago` : at.slice(11, 19); }
+function renderJourney(d) {
+  const x = d.export, evs = d.events || [];
+  if (!x) { $("journey").innerHTML = ""; $("jnote").textContent = d.tombstone ? "Forgotten: every system erased it." : "Not in the export folder."; return; }
+  const v = (x.version || {}).value;
+  const exp = [...evs].reverse().find(e => e.kind === "exported");
+  const latest = [...(d.receipts || [])].reverse().find(r => r.outcome === "accepted" && /version/.test(r.reason || ""));
+  const origin = exp?.system || latest?.system || "wiki";
+  const t0 = exp?.at || x.updated_at || latest?.at;
+  const people = (x.provenance || []).filter(p => p.kind !== "system");
+  const who = people.length ? people[people.length - 1].id : exp?.actor && exp.actor !== "ui" ? exp.actor : null;
+  const imported = {};
+  // Only time imports that followed an export we saw; after a restart there is nothing to measure against.
+  if (exp) for (const e of evs) if (e.kind === "imported" && e.version === v && e.seq > exp.seq) imported[e.system] = e.ms;
+  const delta = t => { const ms = Math.max(0, t - exp.ms); return ms < 1000 ? `+${ms} ms` : `+${(ms / 1000).toFixed(1)} s`; };
+  const label = Object.fromEntries(SYS.map(([k, l]) => [k, l]));
+  const color = Object.fromEntries(SYS.map(([k, , c]) => [k, c]));
+  const steps = [{ c: color[origin], ok: true, b: `${label[origin]} changed it`, s1: t0 ? ago(t0) : "", s2: who ? `by ${who}` : "" },
+                 { c: "--omp", ok: true, b: `OMP version ${v}`, s1: "saved as a revision", s2: x.checksum ? x.checksum.slice(7, 19) + "…" : "" }];
+  for (const [k, l, c] of SYS) {
+    if (k === "export" || k === origin) continue;
+    const st = d.state?.[k] || {}, has = st.base === x.checksum;
+    steps.push({ c, ok: has, b: l, s1: has ? (imported[k] ? `imported ${delta(imported[k])}` : `has version ${v}`) : "catching up…", s2: has ? { wiki: "wrote the markdown file", graph: "updated node and edges", search: "re-indexed the row" }[k] : "" });
+  }
+  const html = steps.map(st => `<div class="jstep ${st.ok ? "ok" : "wait"}" style="--c:var(${st.c})"><b>${esc(st.b)}</b><span>${esc(st.s1)}</span><span>${esc(st.s2)}</span></div>`).join(`<div class="jarrow">→</div>`);
+  if (html !== lastJourney) {
+    $("journey").innerHTML = html;
+    if (animateTrace && lastJourney) $("journey").querySelectorAll(".jstep").forEach(n => n.classList.add("flash"));
+    lastJourney = html;
+  }
+  $("jnote").textContent = exp ? "" : "Timings appear for changes made while this page's server is running.";
+}
+function renderParts(d) {
+  const x = d.export, g = d.graph, sr = d.search;
+  const w = d.wiki ? frontMatter(d.wiki.text) : null;
+  const note = (field, sys) => (d.fields.find(f => f.field === field) || {})[sys] || "";
+  const mdLinks = body => [...(body || "").matchAll(/\]\(([^)\s]+\.md)\)/g)].map(m => m[1]);
+  const resolve = (from, rel) => { const parts = from.split("/").slice(0, -1); for (const p of rel.split("/")) p === ".." ? parts.pop() : p !== "." && parts.push(p); return parts.join("/"); };
+  const out = g ? g.edges.filter(e => e.src === id && e.carrier !== "provenance" && !/^(system|user|agent):/.test(e.dst)).map(e => e.dst) : null;
+  const inc = g ? g.edges.filter(e => e.dst === id && e.carrier !== "provenance" && !/^(system|user|agent):/.test(e.src)).length : 0;
+  const emb = x?.attributes?.embedding;
+  const links = w ? mdLinks(w.body).map(l => resolve(d.wiki.path, l)) : (x?.links || []).map(l => l.target);
+  const set = a => a ? JSON.stringify([...a].sort()) : undefined;
+  // [label, field, shown value (html), per-system raw value for comparison, full detail html]
+  const rows = [
+    ["Title", "title", esc(w?.title ?? x?.title ?? ""), { wiki: w?.title, export: x?.title, graph: g?.node.label, search: sr?.title }],
+    ["Text", "body", readable(w?.body ?? x?.body, w?.title ?? x?.title).replace(/\n+/g, " "), { wiki: w?.body?.trim(), export: x?.body?.trim(), search: sr?.body?.trim() },
+      `<div class="full">${readable(w?.body ?? x?.body, w?.title ?? x?.title)}</div>`],
+    ["Tags", "tags", esc((w?.tags ?? x?.tags ?? []).join(", ")) || "", { wiki: set(w?.tags), export: set(x?.tags), search: sr ? set(sr.tags.split(" ").filter(Boolean)) : undefined }],
+    ["Links", "links", links.length ? links.map(t => `<a>${esc(name(t))}</a>`).join(", ") : "", { wiki: set(links), export: set((x?.links || []).map(l => l.target)), graph: set(out) },
+      inc ? `<div class="full">${inc} other memor${inc === 1 ? "y links" : "ies link"} here.</div>` : ""],
+    ["Folder", "path", esc(d.wiki?.path ?? x?.path ?? ""), { wiki: d.wiki?.path, export: x?.path, search: sr?.path }],
+    ["Embedding", "embedding", emb ? `${emb.dimensions} numbers · ${esc(emb.model)}` : "", { export: emb ? "v" : undefined, search: emb ? "v" : undefined }],
+    ["Version", "version", esc(String(w?.version ?? (x?.version || {}).value ?? "")), { wiki: w?.version, export: (x?.version || {}).value }],
+  ];
+  const ref = r => r[3].wiki ?? r[3].export;
+  const mark = (r, sys) => {
+    const v = r[3][sys], n = note(r[1], sys);
+    if (v !== undefined && v !== null && v !== "") return String(v) === String(ref(r)) || (r[1] === "embedding") || (r[1] === "version" && sys === "export") ? ["keep", "✓", n] : ["diff", "≠", n];
+    if (/not used|not saved|only counts|not drawn|dropped/.test(n)) return ["drop", "–", n];
+    return ["shape", "◇", n];
+  };
+  const head = `<div class="phead"><span>Part</span><span>Value</span>${SYS.map(([, l, c]) => `<span class="sys"><i style="background:var(${c})"></i>${l}</span>`).join("")}</div>`;
+  const body = rows.map(r => {
+    const marks = SYS.map(([k]) => mark(r, k));
+    const per = SYS.map(([k, l, c], i) => `<div style="--c:var(${c})"><b>${l}</b>${esc(marks[i][2] || "—")}</div>`).join("");
+    const inner = `<summary><span class="part">${r[0]}</span><span class="val ${r[2] ? "" : "none"}">${r[2] || "none"}</span>${marks.map(([cls, sym, n]) => `<span class="mark ${cls}" title="${esc(n)}">${sym}</span>`).join("")}</summary><div class="detail">${r[4] || ""}<div class="per">${per}</div></div>`;
+    const changed = animateTrace && lastRow[r[0]] !== undefined && lastRow[r[0]] !== inner;
+    lastRow[r[0]] = inner;
+    return { key: r[0], inner, changed };
+  });
+  // Keep open rows open across the 0.7 s refresh: patch rows instead of replacing the list.
+  const box = $("parts");
+  if (!box.firstChild) box.innerHTML = head + body.map(b => `<details class="prow" data-k="${b.key}">${b.inner}</details>`).join("");
+  else for (const b of body) {
+    const el = box.querySelector(`.prow[data-k="${b.key}"]`);
+    if (el && (b.changed || el.dataset.v !== b.inner)) { el.innerHTML = b.inner; el.dataset.v = b.inner; if (b.changed) { el.classList.remove("flash"); void el.offsetWidth; el.classList.add("flash"); } }
+  }
+}
+async function load() {
+  if (!id) return;
+  const d = JSON.parse(await (await fetch("/api/trace?id=" + encodeURIComponent(id))).text(), (k,v)=>k==='vector'&&Array.isArray(v)&&v.length>16?`[${v.length} numbers]`:v);
+  animateTrace=d.animate!==false;
+  if(!animateTrace)document.querySelectorAll(".flash").forEach(el=>el.classList.remove("flash"));
+  $("status").textContent = d.tombstone ? `forgotten ${d.tombstone.forgotten_at.slice(11, 19)} by ${d.tombstone.by}` : d.conflicts.length ? `${d.conflicts.length + 1} versions, unresolved` : d.export ? `version ${(d.export.version || {}).value ?? "–"}, checksum ${d.export.checksum.slice(7, 19)}…` : "not in the export folder";
+  set("wiki", d.wiki ? hiMd(d.wiki.text) : `<div class="missing">${d.tombstone ? "File removed by the forget." : "No file holds this identifier."}</div>`, d.wiki ? d.wiki.path : "");
+  set("export", d.export ? hiJson(d.export) : `<div class="missing">${d.tombstone ? "Content erased. The tombstone keeps when, who and why, never the text." : "Nothing in omp-export/memories."}</div>`, d.export ? `memories/${d.export.identifier}.json` : "");
+  set("graph", d.graph ? `<div class="row"><span class="l">node</span><span>${esc(d.graph.node.id)}</span></div><div class="row"><span class="l">kind</span><span>${esc(d.graph.node.kind)}</span></div><div class="row"><span class="l">label</span><span>${esc(d.graph.node.label)}</span></div><div class="row"><span class="l">edges</span><span>${d.graph.edges.map(e => `<div class="edge-row">${e.src === id ? "→" : "←"} <span class="rel">${esc(e.rel)}</span> ${esc(e.src === id ? e.dst : e.src)} <span class="carrier">${esc(e.carrier)}</span></div>`).join("") || "none"}</span></div><div class="row"><span class="l">record</span><span class="c">the full interchange record, kept opaque</span></div>` : `<div class="missing">No node. Nothing in the graph points here either.</div>`, d.graph ? `${d.graph.edges.length} edges` : "");
+  set("search", d.search ? hiJson(d.search) : `<div class="missing">No row in the index.</div>`, d.search ? "docs + docs_fts" : "");
+  renderJourney(d);
+  renderParts(d);
+  $("fields").innerHTML = `<tr><th>Field</th><th>Wiki</th><th>OMP export</th><th>Graph</th><th>Search</th></tr>` + d.fields.map(f => `<tr><td class="f">${esc(f.field)}</td><td class="${classify(f.wiki)}">${esc(f.wiki)}</td><td>${esc(f.export)}</td><td class="${classify(f.graph)}">${esc(f.graph)}</td><td class="${classify(f.search)}">${esc(f.search)}</td></tr>`).join("");
+  $("receipts").innerHTML = d.receipts.slice().reverse().map(r => `<div class="rc o-${esc(r.outcome)}"><span class="t">${esc(r.at).slice(11, 19)}</span><span>${esc(r.system)}</span><span><i></i>${esc(r.outcome)}${r.reason ? `: <span class="c">${esc(r.reason)}</span>` : ""}</span></div>`).join("") || `<div class="empty">No receipts yet.</div>`;
+}
+async function list() {
+  const txt = await (await fetch("/api/memories")).text();
+  if (txt === lastList) return; lastList = txt;
+  const ms = JSON.parse(txt).memories.sort((a, b) => a.title.localeCompare(b.title));
+  titles = Object.fromEntries(ms.map(m => [m.identifier, m.title]));
+  if (!id && ms.length) id = ms[0].identifier;
+  $("pick").innerHTML = ms.map(m => `<option value="${esc(m.identifier)}" ${m.identifier === id ? "selected" : ""}>${esc(m.title)}</option>`).join("") + (id && !ms.some(m => m.identifier === id) ? `<option value="${esc(id)}" selected>${esc(id)} (forgotten)</option>` : "");
+}
+$("pick").onchange = () => { id = $("pick").value; if (!new URLSearchParams(location.search).get("embedded")) history.replaceState(null, "", "/trace?id=" + encodeURIComponent(id)); lastTxt = {}; for (const k in lastRow) delete lastRow[k]; lastJourney = ""; $("parts").innerHTML = ""; load(); };
+function fs() { document.fullscreenElement ? document.exitFullscreen() : document.documentElement.requestFullscreen(); }
+addEventListener("keydown", e => { if (e.key === "f" && document.activeElement.tagName !== "SELECT") fs(); if (e.key === "Escape" && !document.fullscreenElement) location.href = "/"; });
+(async () => { await list(); await load(); })();
+setInterval(async () => { await list(); await load(); }, 700);
+addEventListener('message',e=>{if(e.source!==parent||e.data?.type!=='omp-focus'||!e.data.identifier)return;if(id!==e.data.identifier){for(const k in lastRow)delete lastRow[k];lastJourney='';$('parts').innerHTML='';}id=e.data.identifier;lastList='';list().then(load);});
+</script>
+</body>
+</html>

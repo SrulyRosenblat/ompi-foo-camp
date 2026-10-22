@@ -1,0 +1,8 @@
+{
+  "mcpServers": {
+    "omp-memory": {
+      "type": "http",
+      "url": "http://127.0.0.1:8705/mcp"
+    }
+  }
+}

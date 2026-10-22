@@ -1,0 +1,8 @@
+{
+  "mcpServers": {
+    "omp-memory": {
+      "command": "/Users/srulyrosenblat/Developer/ompi-foo-camp/omp-live/.venv/bin/omp-sync",
+      "args": ["mcp", "--site", "http://127.0.0.1:8700"]
+    }
+  }
+}

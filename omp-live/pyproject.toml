@@ -1,0 +1,19 @@
+[project]
+name = "omp-live"
+version = "0.1.0"
+description = "One memory, three systems, synced in real time through the Open Memory Protocol export folder"
+requires-python = ">=3.11"
+dependencies = ["watchdog>=4", "pyyaml>=6", "mcp>=1.30,<2"]
+
+[project.scripts]
+omp-sync = "omp_live.cli:main"
+
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.build_meta"
+
+[tool.setuptools.packages.find]
+include = ["omp_live*"]
+
+[tool.setuptools.package-data]
+omp_live = ["index.html", "trace.html", "systems/*/ui.html", "agent/ui.html"]

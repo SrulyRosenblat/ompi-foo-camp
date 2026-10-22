@@ -1,0 +1,208 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>OMP live</title>
+<style>
+  :root { --stone:#d9d5cc; --stone-2:#cfcac0; --frame:#f4f2ed; --ink:#232019; --ink-2:#6a655b; --edge:#b3ada1; --ok:#2f7d4f; --warn:#b2641a; --bad:#b3362f; --info:#2a5d9f; }
+  * { box-sizing: border-box; }
+  html, body { height: 100%; margin: 0; }
+  body { background: var(--stone); color: var(--ink); font: 13px/1.4 "Avenir Next", "Segoe UI", "Helvetica Neue", Arial, sans-serif; display: grid; grid-template-rows: 46px 64px 1fr 176px; height: 100vh; }
+  header { display: flex; align-items: baseline; gap: 16px; padding: 0 18px; }
+  header h1 { font-size: 17px; font-weight: 600; margin: 0; letter-spacing: -.01em; }
+  header h1 small { font-weight: 400; color: var(--ink-2); margin-left: 8px; font-size: 13px; }
+  header .origin { color: var(--ink-2); font-size: 12px; font-family: ui-monospace, Menlo, monospace; }
+  header .n { margin-left: auto; color: var(--ink-2); }
+  header .fs { margin: 0; }
+  .flow { display: grid; grid-template-columns: auto 1fr; align-items: center; gap: 14px; margin: 0 10px 10px; padding: 0 14px; border: 1px solid var(--edge); border-radius: 7px; background: var(--frame); overflow: hidden; }
+  .flow .what { font-size: 13px; min-width: 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .flow .what b { font-weight: 600; }
+  .flow .what .q { color: var(--ink-2); }
+  .flow .chain { display: flex; align-items: center; gap: 0; justify-self: end; }
+  .flow .step { display: flex; align-items: center; gap: 7px; padding: 5px 12px; border: 1px solid var(--edge); border-radius: 16px; background: var(--stone-2); color: var(--ink-2); font-size: 12.5px; transition: background .25s, color .25s, border-color .25s, transform .25s; white-space: nowrap; }
+  .flow .step i { width: 8px; height: 8px; border-radius: 50%; background: var(--edge); transition: background .25s, box-shadow .25s; }
+  .flow .step.lit { background: #fff; color: var(--ink); border-color: var(--ok); transform: translateY(-1px); }
+  .flow .step.lit i { background: var(--ok); box-shadow: 0 0 0 4px rgba(47,125,79,.18); }
+  .flow .step.bad.lit { border-color: var(--bad); } .flow .step.bad.lit i { background: var(--bad); box-shadow: 0 0 0 4px rgba(179,54,47,.18); }
+  .flow .step.warn.lit { border-color: var(--warn); } .flow .step.warn.lit i { background: var(--warn); box-shadow: 0 0 0 4px rgba(178,100,26,.18); }
+  .flow .step small { color: var(--ink-2); }
+  .flow .arrow { width: 26px; height: 2px; background: var(--edge); position: relative; margin: 0 2px; transition: background .25s; }
+  .flow .arrow::after { content: ""; position: absolute; right: -1px; top: -4px; border: 5px solid transparent; border-left: 6px solid var(--edge); transition: border-left-color .25s; }
+  .flow .arrow.lit { background: var(--ok); } .flow .arrow.lit::after { border-left-color: var(--ok); }
+  @media (prefers-reduced-motion: reduce) { .flow .step, .flow .step i, .flow .arrow { transition: none; } }
+  .panes { display: grid; grid-template-columns: 1fr 420px; gap: 10px; padding: 0 10px; min-height: 0; }
+  .pane { display: grid; grid-template-rows: 30px 1fr; border: 1px solid var(--edge); border-radius: 7px; overflow: hidden; background: var(--frame); min-height: 0; }
+  .pane .bar { display: flex; align-items: stretch; padding: 0 6px; font-size: 12.5px; color: var(--ink-2); background: var(--stone-2); border-bottom: 1px solid var(--edge); gap: 2px; }
+  .pane .bar b { color: var(--ink); font-weight: 600; margin-right: 6px; align-self: center; padding-left: 4px; }
+  .pane .bar .tab { background: none; border: 0; border-bottom: 2px solid transparent; margin: 0; padding: 0 12px; font: inherit; font-size: 12.5px; color: var(--ink-2); cursor: pointer; border-radius: 0; }
+  .pane .bar .tab b { margin-right: 4px; padding: 0; }
+  .pane .bar .tab.on { color: var(--ink); border-bottom-color: var(--info); background: var(--frame); }
+  .pane .bar .tab kbd { font: 10.5px ui-monospace, Menlo, monospace; color: var(--ink-2); border: 1px solid var(--edge); border-radius: 3px; padding: 0 4px; margin-left: 6px; }
+  .pane .stack { position: relative; min-height: 0; }
+  .pane iframe { position: absolute; inset: 0; width: 100%; height: 100%; border: 0; background: #fff; visibility: hidden; }
+  .pane iframe.on { visibility: visible; }
+  .pane.agent iframe { position: static; visibility: visible; display: block; }
+  footer { display: grid; grid-template-columns: 1fr 340px; gap: 10px; padding: 10px; min-height: 0; }
+  .card { background: var(--frame); border: 1px solid var(--edge); border-radius: 7px; overflow: auto; min-height: 0; }
+  .card h2 { font-size: 12px; font-weight: 600; margin: 0; padding: 7px 12px; color: var(--ink-2); background: var(--stone-2); border-bottom: 1px solid var(--edge); position: sticky; top: 0; }
+  .card h2 span { font-weight: 400; }
+  table { border-collapse: collapse; width: 100%; font-size: 12px; table-layout: fixed; }
+  td { padding: 3px 10px; border-bottom: 1px solid #e6e2da; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; vertical-align: top; }
+  td.t { color: var(--ink-2); font-family: ui-monospace, Menlo, monospace; width: 80px; }
+  td.s { width: 84px; }
+  td.o { width: 110px; }
+  td.o i { display: inline-block; width: 8px; height: 8px; border-radius: 50%; margin-right: 6px; }
+  td.id { font-family: ui-monospace, Menlo, monospace; width: 220px; }
+  td.r { color: var(--ink-2); }
+  .o-accepted i, .o-transformed i, .o-resolved i { background: var(--ok); } .o-rejected i, .o-forgotten i { background: var(--bad); } .o-conflict i { background: var(--warn); } .o-omitted i { background: var(--edge); }
+  .side .c { padding: 7px 12px; border-bottom: 1px solid #e6e2da; }
+  .side .c b { font-family: ui-monospace, Menlo, monospace; font-weight: 500; }
+  .side .conflict { border-left: 3px solid var(--warn); }
+  .side .tomb { border-left: 3px solid var(--bad); color: var(--ink-2); }
+  .side .empty { padding: 14px 12px; color: var(--ink-2); }
+  button { font: inherit; font-size: 11.5px; background: #fff; border: 1px solid var(--edge); color: var(--ink); padding: 2px 9px; border-radius: 4px; cursor: pointer; margin: 4px 4px 0 0; }
+  button:hover { border-color: var(--ink); }
+  button:focus-visible { outline: 2px solid var(--info); outline-offset: 1px; }
+</style>
+</head>
+<body>
+<header><h1>Open Memory Protocol <small>one memory, four systems, one folder between them</small></h1><span class="origin" id="origin"></span><span class="n" id="n"></span><button class="fs" onclick="fs()" title="Full screen (F)">Full screen</button></header>
+<div class="flow">
+  <div class="what" id="what"><span class="q">Waiting for a change. Edit a page, draw an edge, or ask the agent to remember something.</span></div>
+  <div class="chain">
+    <span class="step" data-s="agent"><i></i>Agent</span><span class="arrow" data-a="agent"></span>
+    <span class="step" data-s="wiki"><i></i>wiki/ <small>file</small></span><span class="arrow" data-a="wiki"></span>
+    <span class="step" data-s="export"><i></i>omp-export/ <small>record</small></span><span class="arrow" data-a="export"></span>
+    <span class="step" data-s="graph"><i></i>graph <small>node</small></span><span class="arrow" data-a="graph"></span>
+    <span class="step" data-s="search"><i></i>search <small>row</small></span>
+  </div>
+</div>
+<div class="panes">
+  <div class="pane">
+    <div class="bar">
+      <button class="tab on" data-v="wiki"><b>Wiki</b> a folder of markdown <kbd>1</kbd></button>
+      <button class="tab" data-v="graph"><b>Graph</b> nodes and typed edges <kbd>2</kbd></button>
+      <button class="tab" data-v="search"><b>Search</b> a full-text index <kbd>3</kbd></button>
+      <button class="tab" data-v="trace"><b>Trace</b> one memory, every shape <kbd>4</kbd></button>
+    </div>
+    <div class="stack">
+      <iframe id="f-wiki" class="on" title="wiki"></iframe>
+      <iframe id="f-graph" title="graph"></iframe>
+      <iframe id="f-search" title="search"></iframe>
+      <iframe id="f-trace" title="trace"></iframe>
+    </div>
+  </div>
+  <div class="pane agent"><div class="bar"><b>Agent</b> reads and writes the wiki</div><iframe id="f-agent" title="agent"></iframe></div>
+</div>
+<footer>
+  <div class="card"><h2>Receipts <span>— omp-export/receipts, newest first</span></h2><table id="log"></table></div>
+  <div class="card side"><h2>Unresolved and forgotten</h2><div id="side"></div></div>
+</footer>
+<script>
+const esc = s => String(s).replace(/[&<>"]/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]));
+let last = "", framed = false;
+async function poll() {
+  try {
+    const txt = await (await fetch("/api/export?n=16")).text();
+    if (txt === last) return; last = txt;
+    const d = JSON.parse(txt);
+    if (!framed) { framed = true; for (const k of ["wiki", "graph", "search", "agent"]) document.getElementById("f-" + k).src = `http://127.0.0.1:${d.ports[k]}/`; document.getElementById("f-trace").src = "/trace?embedded=1"; }
+    document.getElementById("origin").textContent = d.origin;
+    document.getElementById("n").textContent = `${d.memories} memories, ${d.tombstones.length} forgotten, ${d.conflicts.length} unresolved`;
+    document.getElementById("log").innerHTML = d.receipts.slice().reverse().map(r => `<tr><td class="t">${esc(r.at).slice(11, 19)}</td><td class="s">${esc(r.system)}</td><td class="o o-${esc(r.outcome)}"><i></i>${esc(r.outcome)}</td><td class="id" title="${esc(r.identifier)}">${esc(r.identifier)}</td><td class="r" title="${esc(r.reason || "")}">${esc(r.reason || "")}</td></tr>`).join("");
+    const byId = {};
+    for (const c of d.conflicts) (byId[c.record.identifier] ||= []).push(c);
+    document.getElementById("side").innerHTML =
+      Object.entries(byId).map(([id, cs]) => `<div class="c conflict"><b>${esc(id).slice(0, 24)}</b> has ${cs.length + 1} versions. Keep the one from:<br><button onclick="resolve('${esc(id)}','export')">export folder</button>${[...new Set(cs.map(c => c.system))].map(s => `<button onclick="resolve('${esc(id)}','${esc(s)}')">${esc(s)}</button>`).join("")}</div>`).join("") +
+      d.tombstones.slice().reverse().map(t => `<div class="c tomb"><b>${esc(t.identifier).slice(0, 24)}</b> forgotten ${esc(t.forgotten_at).slice(11, 19)} by ${esc(t.by)}: ${esc(t.reason)}</div>`).join("") || `<div class="empty">Nothing unresolved, nothing forgotten.</div>`;
+  } catch (e) {}
+}
+async function resolve(id, keep) { await fetch("/api/resolve", { method: "POST", body: JSON.stringify({ identifier: id, keep }) }); last = ""; poll(); }
+function fs() { document.fullscreenElement ? document.exitFullscreen() : document.documentElement.requestFullscreen(); }
+const VIEWS = ["wiki", "graph", "search", "trace"];
+function show(v) {
+  for (const k of VIEWS) { document.getElementById("f-" + k).classList.toggle("on", k === v); }
+  document.querySelectorAll(".tab").forEach(t => t.classList.toggle("on", t.dataset.v === v));
+  try { localStorage.setItem("omp-view", v); } catch (e) {}
+}
+document.querySelectorAll(".tab").forEach(t => t.onclick = () => show(t.dataset.v));
+try { const v = localStorage.getItem("omp-view"); if (VIEWS.includes(v)) show(v); } catch (e) {}
+addEventListener("keydown", e => {
+  if (e.metaKey || e.ctrlKey || ["INPUT", "TEXTAREA", "SELECT"].includes(document.activeElement.tagName)) return;
+  if (e.key === "f") fs();
+  const i = parseInt(e.key, 10); if (i >= 1 && i <= 4) show(VIEWS[i - 1]);
+});
+poll(); setInterval(poll, 700);
+
+// ---- the flow strip: light the chain as events arrive ----------------------
+let seq = 0, agentSeq = null, agentAt = 0, timers = [], clearTimer = null, storyId = null, storyAt = 0, storySteps = [];
+const ORDER = ["agent", "wiki", "export", "graph", "search"];
+function lit(step, cls, on) { const el = document.querySelector(`.step[data-s="${step}"]`); if (!el) return; el.classList.remove("bad", "warn"); if (cls) el.classList.add(cls); el.classList.toggle("lit", on); const ar = document.querySelector(`.arrow[data-a="${step}"]`); if (ar) ar.classList.toggle("lit", on); }
+function resetChain() { for (const s of ORDER) lit(s, null, false); }
+function play(steps, text, id) {
+  if (id && id === storyId && Date.now() - storyAt < 6000) {
+    // same memory, more steps: extend the running story instead of restarting it
+    const extra = steps.filter(st => !storySteps.some(x => x.step === st.step));
+    if (!extra.length) return;
+    if (clearTimer) clearTimeout(clearTimer);
+    extra.forEach((st, i) => timers.push(setTimeout(() => lit(st.step, st.cls, true), 120 + i * 260)));
+    storySteps = storySteps.concat(extra);
+    clearTimer = setTimeout(resetChain, 120 + extra.length * 260 + 4500);
+    return;
+  }
+  timers.forEach(clearTimeout); timers = []; if (clearTimer) clearTimeout(clearTimer);
+  resetChain();
+  storyId = id || null; storyAt = Date.now(); storySteps = steps.slice();
+  document.getElementById("what").innerHTML = text;
+  steps.forEach((st, i) => timers.push(setTimeout(() => lit(st.step, st.cls, true), 120 + i * 260)));
+  clearTimer = setTimeout(resetChain, 120 + steps.length * 260 + 4500);
+}
+async function activity() {
+  try {
+    const r = await fetch("/api/activity?since=" + seq);
+    if (r.status === 404) { document.getElementById("what").innerHTML = `<span class="q">This page is newer than the server it is talking to. Stop <b>omp-sync demo</b> (Ctrl-C) and start it again.</span>`; return; }
+    const d = await r.json();
+    seq = d.seq;
+    const ag = d.agent;
+    if (ag && agentSeq !== null && ag.tool_seq > agentSeq) { agentAt = Date.now(); show("wiki"); }
+    if (ag) agentSeq = ag.tool_seq;
+    const fromAgent = Date.now() - agentAt < 3000;
+    const ev = d.events;
+    if (!ev.length) {
+      if (fromAgent && ag.last_tool && !document.querySelector('.step[data-s="agent"].lit')) {
+        const w = document.getElementById("what");
+        if (document.querySelector(".step.lit")) { lit("agent", null, true); if (!/^<b>Agent/.test(w.innerHTML)) w.innerHTML = `<b>Agent</b> ${esc(ag.last_tool.name)}: ` + w.innerHTML; }
+        else play([{ step: "agent" }], `<b>Agent</b> ${esc(ag.last_tool.name)} <span class="q">${esc(ag.last_tool.result)}</span>`, "agent:" + ag.tool_seq);
+      }
+      return;
+    }
+    // one story per tick: the first identifier that moved
+    const id = (ev.find(e => e.kind === "exported" || e.kind === "forgotten") || ev[0]).identifier;
+    const mine = ev.filter(e => e.identifier === id);
+    const origin = mine.find(e => e.kind === "exported" || e.kind === "forgotten" || e.kind === "conflict" || e.kind === "rejected");
+    const title = (mine.find(e => e.title) || {}).title || id;
+    const steps = [];
+    if (fromAgent) steps.push({ step: "agent" });
+    if (origin) {
+      const src = origin.system === "cli" || origin.system === "projector" || /^agent/.test(origin.system) ? "export" : origin.system;
+      const cls = origin.kind === "rejected" || origin.kind === "forgotten" ? "bad" : origin.kind === "conflict" ? "warn" : null;
+      if (src !== "export") steps.push({ step: src, cls });
+      steps.push({ step: "export", cls });
+    }
+    for (const e of mine.filter(e => e.kind === "imported" || e.kind === "erased")) {
+      if (!steps.some(s => s.step === e.system)) steps.push({ step: e.system, cls: e.kind === "erased" ? "bad" : null });
+    }
+    // chain order: light in pipeline order, origin first
+    const seen = new Set(); const ordered = [];
+    for (const st of steps) if (!seen.has(st.step)) { seen.add(st.step); ordered.push(st); }
+    const verb = { exported: origin && origin.new ? "created" : "changed", forgotten: "forgotten", conflict: "conflicted", rejected: "rejected" }[origin ? origin.kind : "exported"] || "changed";
+    const where = origin ? (origin.system === "cli" || origin.system === "projector" ? "" : ` in <b>${esc(origin.system)}</b>`) : "";
+    const v = origin && origin.version != null ? ` <span class="q">version ${origin.version}</span>` : "";
+    play(ordered, `${fromAgent ? `<b>Agent</b> ${esc((ag.last_tool || {}).name || "wrote")}: ` : ""}<b>${esc(title)}</b> ${verb}${where}${v}${origin && origin.reason ? ` <span class="q">${esc(origin.reason)}</span>` : ""}`, id);
+  } catch (e) {}
+}
+activity(); setInterval(activity, 400);
+</script>
+</body>
+</html>

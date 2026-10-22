@@ -1,0 +1,657 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>What happens when an agent remembers something · omp-live</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,400;0,9..144,600;1,9..144,400&family=Hanken+Grotesk:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;700&display=swap" rel="stylesheet">
+<style>
+html,body{margin:0;background:#0b0c0f}
+@media(max-width:760px){
+ .mast{flex-wrap:wrap;gap:12px!important}.mast h1{font-size:24px!important}
+ .narr{grid-template-columns:auto 1fr!important;gap:10px!important;padding:14px!important}
+ .narr .no{font-size:30px!important;min-width:42px!important}
+ .narr .ctl{grid-column:1/-1;justify-content:flex-end}
+ .narr h3{font-size:18px!important}.narr p{font-size:14px!important}
+ .hint{text-align:left!important;line-height:1.8}
+}
+
+.omp{
+  --bg:#0b0c0f; --stage:#0e1014; --pane:#14171d; --pane2:#1b1f27; --line:#272c36; --line2:#363c48;
+  --tx:#ece8e0; --tx2:#a0a5ae; --tx3:#666c77;
+  --wiki:#f3b54a; --omp:#ff6a45; --graph:#4fd6e0; --search:#ff8db4; --agent:#8fc3ff;
+  --keep:#6fdc9b; --shape:#ac9dff; --opaque:#5d636e;
+  --k:#8fc3ff; --s:#e9d9ae; --num:#ffb86b; --c:#6b717c; --fm:#f5d08e;
+  --display:"Fraunces","Iowan Old Style",Georgia,serif;
+  --ui:"Hanken Grotesk","Avenir Next","Segoe UI",sans-serif;
+  --mono:"JetBrains Mono",ui-monospace,"SF Mono",Menlo,monospace;
+  background:
+    radial-gradient(900px 420px at 85% -5%, rgba(255,106,69,.12), transparent 60%),
+    radial-gradient(rgba(255,255,255,.04) 1px, transparent 1.2px) 0 0/18px 18px, var(--bg);
+  color:var(--tx); font-family:var(--ui); -webkit-font-smoothing:antialiased;
+  border-radius:var(--radius,16px); padding:22px 20px 20px; display:flex; flex-direction:column; gap:14px;
+}
+.omp *{box-sizing:border-box}
+.mast{display:flex;justify-content:space-between;align-items:end;gap:20px}
+.mast .eyebrow{font:500 10.5px var(--mono);letter-spacing:.14em;text-transform:uppercase;color:var(--omp);display:flex;align-items:center;gap:8px}
+.mast .eyebrow::before{content:"";width:18px;height:1px;background:var(--omp)}
+.mast h1{font:400 30px/1.1 var(--display);letter-spacing:-.02em;margin:8px 0 0}
+.mast h1 em{color:var(--omp)}
+.mode{display:flex;border:1px solid var(--line2);border-radius:999px;padding:3px;background:var(--pane);font:600 11.5px var(--ui)}
+.mode button{all:unset;cursor:pointer;padding:6px 12px;border-radius:999px;color:var(--tx3)}
+.mode button.on{background:var(--pane2);color:var(--tx);box-shadow:inset 0 0 0 1px var(--line2)}
+
+/* ---------- the stage: the dashboard ---------- */
+.vp{position:relative;width:100%;aspect-ratio:1280/640;border:1px solid var(--line);border-radius:14px;overflow:hidden;background:var(--stage);box-shadow:0 30px 60px -40px #000;cursor:pointer}
+.stage{position:absolute;left:0;top:0;width:1280px;height:640px;transform-origin:0 0;font-size:13px}
+.stage.instant *, .stage.instant *::before, .stage.instant *::after{transition:none!important;animation:none!important}
+.box{position:absolute;background:var(--pane);border:1px solid var(--line);border-radius:12px;overflow:hidden}
+.bar{height:34px;display:flex;align-items:center;gap:8px;padding:0 14px;font-size:12px;color:var(--tx3);border-bottom:1px solid var(--line);white-space:nowrap}
+.bar b{color:var(--tx);font-weight:600;font-size:13px}
+.bar .dot{width:8px;height:8px;border-radius:50%;background:var(--sys,var(--tx3));box-shadow:0 0 8px var(--sys,transparent)}
+.bar .n{margin-left:auto;font:11px var(--mono)}
+.flash{animation:flash 1.6s ease-out}
+@keyframes flash{from{background:rgba(255,106,69,.3)}to{background:transparent}}
+.c{color:var(--c)} .k{color:var(--k)} .s{color:var(--s)} .num{color:var(--num)} .fm{color:var(--fm)}
+
+.hdr{position:absolute;left:20px;right:20px;top:10px;height:30px;display:flex;align-items:baseline;gap:14px}
+.hdr h2{font:600 19px var(--display);margin:0}
+.hdr h2 em{color:var(--omp)}
+.hdr small{font-size:12px;color:var(--tx3)}
+.hdr .o{font:11px var(--mono);color:var(--tx3)}
+.hdr .n{margin-left:auto;font:500 12px var(--mono);color:var(--tx2)}
+.hdr .n b{color:var(--tx)}
+
+.flow{position:absolute;left:16px;top:48px;width:1248px;height:52px;border:1px solid var(--line);border-radius:12px;background:var(--pane);display:flex;align-items:center;padding:0 14px 0 18px;gap:14px}
+.flow .what{flex:1;min-width:0;font-size:13.5px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.flow .what .q{color:var(--tx3);font:12px var(--mono)}
+.chain{display:flex;align-items:center}
+.step{display:flex;align-items:center;gap:7px;padding:6px 12px;border:1px solid var(--line2);border-radius:20px;background:var(--pane2);color:var(--tx3);font:500 12.5px var(--ui);white-space:nowrap;transition:all .5s}
+.step i{width:8px;height:8px;border-radius:50%;background:var(--line2);transition:all .5s}
+.step small{font:11px var(--mono)}
+.step.lit{color:var(--tx);border-color:var(--sys);background:color-mix(in srgb,var(--sys) 14%,var(--pane2))}
+.step.lit i{background:var(--sys);box-shadow:0 0 0 4px color-mix(in srgb,var(--sys) 25%,transparent),0 0 12px var(--sys)}
+.step.now{transform:translateY(-2px);box-shadow:0 8px 20px -8px var(--sys)}
+[data-sys=agent]{--sys:var(--agent)} [data-sys=wiki]{--sys:var(--wiki)} [data-sys=omp]{--sys:var(--omp)} [data-sys=graph]{--sys:var(--graph)} [data-sys=search]{--sys:var(--search)} [data-sys=trace]{--sys:var(--omp)}
+.arr{width:22px;height:1px;background:var(--line2);position:relative;margin:0 3px;transition:background .5s}
+.arr::after{content:"";position:absolute;right:-1px;top:-4px;border:4.5px solid transparent;border-left:6px solid var(--line2);transition:border-left-color .5s}
+.arr.lit{background:var(--tx2)} .arr.lit::after{border-left-color:var(--tx2)}
+
+.tabs{display:flex;align-items:stretch;gap:2px;height:38px;padding:0 8px;border-bottom:1px solid var(--line);font:500 13px var(--ui);color:var(--tx3)}
+.tab{padding:0 14px;display:flex;align-items:center;gap:7px;border-bottom:2px solid transparent;transition:all .4s}
+.tab i{width:7px;height:7px;border-radius:50%;background:var(--sys)}
+.tab kbd{font:10px var(--mono);color:var(--tx3);border:1px solid var(--line2);border-radius:4px;padding:0 5px;margin-left:2px}
+.tab.on{color:var(--tx);border-bottom-color:var(--sys)}
+.view{position:absolute;left:0;right:0;top:38px;bottom:0;opacity:0;transition:opacity .5s;pointer-events:none}
+.view.on{opacity:1}
+.tree{position:absolute;left:0;top:0;bottom:0;width:220px;border-right:1px solid var(--line);font-size:12.5px;padding:10px 0;color:var(--tx2)}
+.tree div{padding:3px 14px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.tree .dir{color:var(--tx3);font:500 11px var(--mono);margin-top:4px}
+.tree .sel{background:rgba(243,181,74,.12);color:var(--tx);box-shadow:inset 3px 0 0 var(--wiki)}
+.tree .new{max-height:0;opacity:0;padding-top:0;padding-bottom:0;transition:all .6s}
+.tree .new.on{max-height:24px;opacity:1;padding-top:3px;padding-bottom:3px}
+.page{position:absolute;left:220px;right:0;top:0;bottom:0;padding:18px 24px;font-size:13.5px;line-height:1.6;color:var(--tx2);overflow:hidden}
+.page h3{margin:0 0 6px;font:600 22px var(--display);color:var(--tx)}
+.page .by{font-size:12px;color:var(--tx3);margin-bottom:12px}
+.page .by b{color:var(--tx2);font-weight:600}
+.page a{color:var(--k);text-decoration:none;border-bottom:1px dotted var(--k)}
+.page .meta{margin-top:16px;border-top:1px solid var(--line);padding-top:10px;font:11.5px/1.7 var(--mono);color:var(--tx3);display:inline-block;padding-right:10px;border-radius:4px}
+.page .meta b{color:var(--omp);font-weight:500}
+.gsvg text{font:12px var(--ui);fill:var(--tx2)}
+.gsvg .sm{font:10.5px var(--mono);fill:var(--tx3)}
+.gsvg .lbl{font:600 14px var(--ui);fill:var(--tx)}
+.g-mem{fill:var(--graph);filter:drop-shadow(0 0 8px rgba(79,214,224,.7))}
+.g-node{fill:var(--pane2);stroke:var(--tx2);stroke-width:1.4}
+.g-dim{fill:var(--pane2);stroke:var(--line2);stroke-width:1.2}
+.g-human{fill:var(--keep)} .g-agent{fill:var(--wiki)} .g-system{fill:var(--tx3)}
+.g-link{stroke:var(--graph);stroke-dasharray:5 5;stroke-width:1.6}
+.g-prov{stroke:#4a505c;stroke-width:1.3}
+.g-old{stroke:#262b34;stroke-width:1.2}
+.gnew{opacity:0;transition:opacity .8s}
+.gnew.on{opacity:1}
+.ring{fill:none;stroke:var(--graph);opacity:0;transform-box:fill-box;transform-origin:center}
+.ring.go{animation:ring 1.6s ease-out 3}
+@keyframes ring{0%{opacity:.8;transform:scale(1)}100%{opacity:0;transform:scale(3.4)}}
+.qbox{margin:14px 16px 8px;border:1px solid var(--line2);border-radius:9px;background:var(--pane2);padding:8px 12px;font:13px var(--mono);color:var(--tx)}
+.tbl{width:100%;border-collapse:collapse;font-size:12.5px;color:var(--tx2)}
+.tbl td,.tbl th{padding:8px 16px;border-bottom:1px solid rgba(255,255,255,.05);text-align:left;white-space:nowrap}
+.tbl th{color:var(--tx3);font:500 10.5px var(--mono);text-transform:uppercase;letter-spacing:.07em}
+.tbl td b{color:var(--tx)}
+.tbl mark{background:rgba(255,141,180,.25);color:#ffd0e0;padding:0 2px;border-radius:3px}
+.tbl tr.new{display:none} .tbl tr.new.on{display:table-row}
+.tbl.tr td{padding:5.5px 14px;font-size:12px}
+.tbl.tr td:first-child{font-family:var(--mono);color:var(--tx)}
+
+.chat{position:absolute;left:0;right:0;top:34px;bottom:58px;padding:14px;display:flex;flex-direction:column;gap:10px;overflow:hidden}
+.msg{opacity:0;transform:translateY(8px);transition:all .5s}
+.msg.on{opacity:1;transform:none}
+.msg.u{align-self:flex-end;background:linear-gradient(135deg,#ff7a55,#ff5a36);color:#fff;padding:8px 14px;border-radius:16px 16px 4px 16px;font-weight:500;box-shadow:0 8px 20px -10px var(--omp)}
+.msg.tool{font:11.5px/1.55 var(--mono);color:var(--tx3);border-left:2px solid var(--line2);padding:2px 0 2px 10px}
+.msg.tool b{color:var(--k);font-weight:500}
+.msg.tool.w{border-left-color:var(--wiki)}
+.msg.tool .file{margin-top:6px;background:#0f1115;border:1px solid var(--line);border-radius:8px;padding:8px 10px;color:var(--tx2);font-size:10.5px;line-height:1.5;white-space:pre-wrap;overflow-wrap:anywhere}
+.msg.a{background:var(--pane2);border:1px solid var(--line2);padding:8px 13px;border-radius:16px 16px 16px 4px;color:var(--tx);font-size:12.5px}
+.input{position:absolute;left:12px;right:12px;bottom:12px;height:36px;border:1px solid var(--line2);border-radius:20px;background:#0f1115;display:flex;align-items:center;padding:0 6px 0 14px;font-size:12.5px;color:var(--tx3)}
+.input span{flex:1;color:var(--tx)}
+.input span:empty::before{content:"Message the agent";color:var(--tx3)}
+.input .send{flex:0;background:var(--omp);color:#fff;font-weight:600;border-radius:14px;padding:4px 12px;font-size:12px;transition:transform .2s}
+.input .send.press{transform:scale(.9)}
+.caret::after{content:"";display:inline-block;width:1.5px;height:1em;background:var(--omp);vertical-align:-2px;margin-left:1px;animation:blink .8s steps(1) infinite}
+@keyframes blink{50%{opacity:0}}
+
+.rlog{font-size:12.5px;color:var(--tx2)}
+.rlog div{display:grid;grid-template-columns:90px 80px 110px 1fr;gap:10px;padding:7px 16px;border-bottom:1px solid rgba(255,255,255,.05)}
+.rlog .t{font:11.5px var(--mono);color:var(--tx3)}
+.rlog .who{font:600 12px var(--mono);color:var(--tx)}
+.rlog i{display:inline-block;width:7px;height:7px;border-radius:50%;margin-right:7px;background:var(--keep);box-shadow:0 0 8px var(--keep)}
+.rlog .id{font-family:var(--mono);color:var(--tx3);font-size:11.5px}
+.rlog .new{display:none} .rlog .new.on{display:grid;animation:flash 1.8s ease-out}
+
+/* ---------- THE CONVERSION VIEW ---------- */
+.conv{position:absolute;left:16px;top:112px;width:1248px;height:514px;z-index:20;border-radius:14px;border:1px solid rgba(255,106,69,.55);
+  background:radial-gradient(600px 300px at 50% 0%, rgba(255,106,69,.08), transparent 70%), #101217;
+  box-shadow:0 0 0 4px rgba(255,106,69,.1),0 40px 80px -30px #000;opacity:0;transform:translateY(14px) scale(.985);transition:opacity .6s,transform .7s cubic-bezier(.3,1.2,.5,1);pointer-events:none}
+.conv.on{opacity:1;transform:none}
+.conv.away{opacity:0;transform:translate(110px,-150px) scale(.25);transition:opacity .9s ease-in,transform .9s cubic-bezier(.6,0,.4,1)}
+.conv .head{position:absolute;left:0;right:0;top:0;height:46px;display:flex;align-items:center;gap:14px;padding:0 20px;border-bottom:1px solid var(--line)}
+.conv .head h4{margin:0;font:600 17px var(--display)}
+.conv .head h4 em{color:var(--omp)}
+.conv .legend{margin-left:auto;display:flex;gap:14px;font:500 11.5px var(--ui);color:var(--tx2)}
+.conv .legend span{display:flex;align-items:center;gap:6px;padding:4px 9px;border-radius:999px;border:1px solid transparent;transition:all .4s}
+.conv .legend span.on{color:var(--tx);border-color:var(--lc);background:color-mix(in srgb,var(--lc) 15%,transparent);box-shadow:0 0 14px -4px var(--lc)}
+.conv .legend i{width:18px;height:3px;border-radius:2px}
+.conv .side{position:absolute;top:62px;background:var(--pane);border:1px solid var(--line);border-radius:11px;overflow:hidden}
+.conv .side .bar{height:32px;font-size:11.5px}
+.conv .md{left:20px;width:440px;height:330px;--sys:var(--wiki)}
+.conv .rec .code .slot{white-space:pre-wrap;overflow-wrap:anywhere;padding:3px 6px}
+.conv .md{box-shadow:inset 0 2px 0 var(--wiki)}
+.conv .rec{left:600px;width:628px;height:436px;box-shadow:inset 0 2px 0 var(--omp)}
+.conv .md .code{padding:18px 16px;font:20px/32px var(--mono);color:var(--tx);white-space:pre-wrap;overflow-wrap:anywhere}
+.conv .rec .code{padding:10px 18px;font:20px/24px var(--mono);color:var(--tx)}
+.conv .code div{white-space:pre;border-radius:4px;padding:0 6px;margin:0 -6px;transition:background .5s,box-shadow .5s,opacity .5s}
+.conv .md .hl{background:rgba(255,255,255,.07)}
+.conv .md .hl.file{background:rgba(111,220,155,.13);box-shadow:inset 2px 0 0 var(--keep)}
+.conv .md .hl.res{background:rgba(172,157,255,.16)}
+.conv .md .hl.sync{background:rgba(255,106,69,.14);box-shadow:inset 2px 0 0 var(--omp)}
+.conv .md .wl{color:var(--k);border-radius:3px;padding:0 1px;transition:background .4s}
+.conv .md .wl.hl{background:rgba(172,157,255,.35);color:#fff}
+.conv .md .code div{white-space:pre-wrap;overflow-wrap:anywhere}
+.conv .pathsrc{transition:background .4s;border-radius:4px;padding:2px 4px;margin-left:-4px}
+.conv .pathsrc.hl{background:rgba(111,220,155,.2);color:var(--tx)}
+.conv .rec .slot{opacity:.38}
+.conv .rec .slot .v{color:var(--tx3)}
+.conv .rec .slot.filled{opacity:1}
+.conv .rec .slot.filled .v{color:var(--s)}
+.conv .rec .slot.file{background:rgba(111,220,155,.09);box-shadow:inset 2px 0 0 var(--keep)}
+.conv .rec .slot.res{background:rgba(172,157,255,.11);box-shadow:inset 2px 0 0 var(--shape)}
+.conv .rec .slot.sync{background:rgba(255,106,69,.11);box-shadow:inset 2px 0 0 var(--omp)}
+.conv .rec .slot.sync .v{color:#ffc2b0}
+.conv .rec .brace{opacity:.55}
+.conv .wires{position:absolute;inset:0;pointer-events:none;overflow:visible}
+.conv .wires path{fill:none;stroke-width:2;stroke-dasharray:1;stroke-dashoffset:1;transition:stroke-dashoffset .9s cubic-bezier(.5,0,.3,1),opacity .5s}
+.conv .wires path.on{stroke-dashoffset:0}
+.conv .wires path.dim{opacity:.28}
+.conv .wires circle{transition:opacity .4s;opacity:0}
+.conv .wires circle.on{opacity:1}
+.w-file{stroke:var(--keep)} .w-res{stroke:var(--shape)} .w-sync{stroke:var(--omp)}
+.f-file{fill:var(--keep)} .f-res{fill:var(--shape)} .f-sync{fill:var(--omp)}
+.conv .source{position:absolute;left:20px;top:406px;width:440px;height:96px}
+.conv .src-card{position:absolute;left:0;right:0;top:0;background:var(--pane);border:1px solid var(--line);border-radius:10px;padding:9px 12px;font-size:12px;color:var(--tx2);opacity:0;transform:translateY(6px);transition:all .5s}
+.conv .src-card.on{opacity:1;transform:none}
+.conv .src-card b{color:var(--tx)}
+.conv .src-card code{font:11px var(--mono);color:var(--fm)}
+.conv .src-card.sync{border-color:rgba(255,106,69,.5);box-shadow:inset 3px 0 0 var(--omp)}
+.conv .lookup{font:11.5px var(--mono);display:grid;grid-template-columns:auto auto auto;gap:3px 10px;margin-top:4px;color:var(--tx2)}
+.conv .lookup span{opacity:0;transition:opacity .4s}
+.conv .lookup span.on{opacity:1}
+.conv .lookup .a{color:var(--k)} .conv .lookup .b{color:var(--shape)}
+.conv .canon{font:10.5px/1.5 var(--mono);color:var(--tx3);word-break:break-all;margin-top:5px}
+.conv .canon b{color:var(--omp)}
+
+/* spotlight + callout */
+.spot{position:absolute;z-index:30;border-radius:14px;box-shadow:0 0 0 2000px rgba(6,7,10,.6);pointer-events:none;opacity:0;transition:left .7s cubic-bezier(.5,0,.3,1),top .7s cubic-bezier(.5,0,.3,1),width .7s cubic-bezier(.5,0,.3,1),height .7s cubic-bezier(.5,0,.3,1),opacity .5s}
+.spot.on{opacity:1}
+.spot::after{content:"";position:absolute;inset:-3px;border-radius:16px;border:1.5px solid rgba(255,255,255,.55)}
+.tip{position:absolute;z-index:31;max-width:300px;background:#f6f2ea;color:#16181d;border-radius:12px;padding:11px 14px;font:500 13.5px/1.4 var(--ui);box-shadow:0 18px 40px -12px rgba(0,0,0,.8);opacity:0;transform:translateY(6px);transition:opacity .4s,transform .4s;pointer-events:none}
+.tip.on{opacity:1;transform:none}
+.tip b{font-weight:700}
+.tip code{font:12px var(--mono);background:rgba(0,0,0,.07);border-radius:4px;padding:0 4px}
+.tip::before{content:"";position:absolute;width:12px;height:12px;background:#f6f2ea;transform:rotate(45deg)}
+.tip[data-side=right]::before{left:-6px;top:var(--ay,18px)}
+.tip[data-side=left]::before{right:-6px;top:var(--ay,18px)}
+.tip[data-side=bottom]::before{top:-6px;left:var(--ax,24px)}
+.tip[data-side=top]::before{bottom:-6px;left:var(--ax,24px)}
+.clickme{position:absolute;right:18px;bottom:14px;z-index:40;font:600 11.5px var(--ui);color:var(--tx);background:rgba(20,23,29,.92);border:1px solid var(--line2);border-radius:999px;padding:7px 14px;display:flex;gap:8px;align-items:center;opacity:0;transition:opacity .4s;pointer-events:none}
+.clickme.on{opacity:1;animation:nudge 2.4s ease-in-out infinite}
+.clickme kbd{font:10px var(--mono);border:1px solid var(--line2);border-radius:4px;padding:0 5px;color:var(--tx2)}
+@keyframes nudge{50%{transform:translateX(3px)}}
+
+/* ---------- narration + controls ---------- */
+.narr{display:grid;grid-template-columns:auto 1fr auto;gap:22px;align-items:center;padding:16px 20px;border:1px solid var(--line);border-radius:14px;background:linear-gradient(90deg,rgba(255,106,69,.07),transparent 35%),var(--pane);min-height:104px}
+.narr.hero{border-color:rgba(255,106,69,.6);background:linear-gradient(90deg,rgba(255,106,69,.16),transparent 55%),var(--pane)}
+.narr .no{font:italic 400 40px/1 var(--display);color:var(--omp);min-width:70px;text-align:center}
+.narr .no small{display:block;font:500 10px var(--mono);color:var(--tx3);font-style:normal;letter-spacing:.1em;margin-top:5px}
+.narr .chap{font:600 10px var(--mono);letter-spacing:.12em;text-transform:uppercase;color:var(--tx3);margin-bottom:3px}
+.narr.hero .chap{color:var(--omp)}
+.narr h3{margin:0 0 4px;font:600 20px var(--display)}
+.narr p{margin:0;color:var(--tx2);font-size:14.5px;line-height:1.5;max-width:780px}
+.narr p code{font:12.5px var(--mono);color:var(--fm)}
+.narr .txt{animation:fadein .5s ease;min-height:86px;display:flex;flex-direction:column;justify-content:center}
+@keyframes fadein{from{opacity:0;transform:translateY(4px)}}
+.ctl{display:flex;gap:8px;align-items:center}
+.ctl button{width:42px;height:42px;border-radius:50%;border:1px solid var(--line2);background:var(--pane2);color:var(--tx);cursor:pointer;display:grid;place-items:center;transition:all .2s}
+.ctl button:hover{border-color:var(--omp)}
+.ctl button:disabled{opacity:.35;cursor:default}
+.ctl button.next{width:auto;padding:0 18px 0 20px;border-radius:999px;background:var(--omp);border-color:var(--omp);color:#fff;font:700 13px var(--ui);gap:8px;display:flex;box-shadow:0 8px 20px -8px var(--omp)}
+.ctl svg{width:15px;height:15px}
+.ctl button.next.ready{animation:ready 1.8s ease-in-out infinite}
+@keyframes ready{50%{box-shadow:0 0 0 7px rgba(255,106,69,.18),0 8px 20px -8px var(--omp)}}
+.chapters{display:grid;gap:10px;grid-template-columns:3fr 3fr 2fr 7fr 5fr 1.4fr}
+.chapter{display:flex;flex-direction:column;gap:7px}
+.chapter .nm{font:600 11px var(--ui);color:var(--tx3);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.chapter.hero .nm{color:var(--omp)}
+.chapter.cur .nm{color:var(--tx)}
+.chapter .ticks{display:flex;gap:3px}
+.chapter .ticks button{all:unset;cursor:pointer;flex:1;height:6px;border-radius:3px;background:var(--line2);transition:background .3s}
+.chapter.hero .ticks button{background:#4a2c25}
+.chapter .ticks button.done{background:var(--tx3)}
+.chapter.hero .ticks button.done{background:#a2503c}
+.chapter .ticks button.on{background:var(--omp);box-shadow:0 0 10px var(--omp)}
+.chapter .ticks button:hover{background:var(--tx2)}
+.hint{font:11px var(--mono);color:var(--tx3);text-align:right}
+.hint kbd{font:10px var(--mono);border:1px solid var(--line2);border-radius:4px;padding:0 5px;color:var(--tx2)}
+@media (prefers-reduced-motion: reduce){ .omp *{animation-duration:.01ms!important;transition-duration:.01ms!important} }
+</style>
+</head>
+<body>
+<div class="omp" id="root">
+  <header class="mast">
+    <div>
+      <div class="eyebrow">omp-live · a walkthrough</div>
+      <h1>What happens when an agent <em>remembers</em> something.</h1>
+    </div>
+    <div class="mode"><button id="m-click" class="on">Click through</button><button id="m-auto">Autoplay</button></div>
+  </header>
+  <div class="vp" id="vp"><div class="stage" id="stage"></div></div>
+  <div class="narr" id="narr">
+    <div class="no" id="no"></div>
+    <div class="txt" id="txt" aria-live="polite"></div>
+    <div class="ctl">
+      <button id="prev" aria-label="Back" title="Back (←)"><svg viewBox="0 0 16 16" fill="currentColor"><path d="M10.5 3 5 8l5.5 5z"/></svg></button>
+      <button id="replay" aria-label="Replay this step" title="Replay this step (R)"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"><path d="M13.5 8a5.5 5.5 0 1 1-1.6-3.9"/><path d="M13.5 2.5v3h-3"/></svg></button>
+      <button id="next" class="next" title="Next (→ or space)">Next <svg viewBox="0 0 16 16" fill="currentColor"><path d="M5.5 3 11 8l-5.5 5z"/></svg></button>
+    </div>
+  </div>
+  <div class="chapters" id="chapters"></div>
+  <div class="hint"><kbd>→</kbd> / <kbd>space</kbd> / click the screen: next · <kbd>←</kbd> back · drag along the bar to scrub · <kbd>R</kbd> replay step</div>
+</div>
+<script>
+// Illustrative presentation of the user-supplied minimal OMP shape.
+// The live adapter has its own schema; this walkthrough demonstrates the thin core.
+const ID='agent/dislikes-sushi.md';
+const BODY='# Dislikes sushi\n\nThe user does not like sushi.\nRelated: [Vegan](vegan.md), [Kosher](kosher.md), [Pizza](likes-pizza.md).';
+const LINKS=[...BODY.matchAll(/\[[^\]]+\]\(([^)]+)\)/g)].map(([,href])=>({
+  target:new URL(href,'https://memory.invalid/'+ID).pathname.slice(1)
+}));
+const MEMORY={identifier:ID, media_type:'text/markdown', body:BODY, attributes:{}, links:LINKS};
+const W=1280, H=640;
+const escapeHTML = value => String(value).replace(/[&<>"']/g, ch => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[ch]));
+
+// Each visible value comes from the same complete, valid JSON object.
+const REC = [
+  ['{'],
+  ['identifier',JSON.stringify(MEMORY.identifier)+',','file','P-path'],
+  ['media_type',JSON.stringify(MEMORY.media_type)+',','res','sc-type'],
+  ['body',JSON.stringify(MEMORY.body)+',','file','L-body'],
+  ['attributes','{},','sync','sc-attributes'],
+  ['links','['],
+  ...LINKS.map((link,n)=>['',JSON.stringify(link)+(n<LINKS.length-1?',':''),'res','WL'+n]),
+  ['  ]'],
+  ['}'],
+];
+const recLine = (r,i) => {
+  if(r.length===1) return `<div class="brace" data-i="${i}">${r[0]}</div>`;
+  const [k,v,cat,src]=r;
+  const key=k ? `  <span class="k">"${k}"</span>: ` : '    ';
+  if(!cat) return `<div class="brace" data-i="${i}">${key}${escapeHTML(v)}</div>`;
+  return `<div class="slot" data-i="${i}" data-cat="${cat}" data-src="${src}">${key}<span class="v" data-v="${escapeHTML(v)}">…</span></div>`;
+};
+
+function build(s){
+  s.innerHTML = `
+  <div class="hdr"><h2>OMP <em>live</em></h2><small>one memory across three systems</small><span class="o">illustrative · core fields + links</span><span class="n" id="count"><b>14</b> memories</span></div>
+  <div class="flow" id="flow"><div class="what" id="what"><span class="q">waiting for a change…</span></div>
+    <div class="chain">
+      <span class="step" data-s="agent" data-sys="agent"><i></i>Agent</span><span class="arr" data-a="agent"></span>
+      <span class="step" data-s="wiki" data-sys="wiki"><i></i>wiki <small>file</small></span><span class="arr" data-a="wiki"></span>
+      <span class="step" data-s="omp" data-sys="omp" id="step-omp"><i></i>omp-export <small>record</small></span><span class="arr" data-a="omp"></span>
+      <span class="step" data-s="graph" data-sys="graph"><i></i>graph <small>node</small></span><span class="arr" data-a="graph"></span>
+      <span class="step" data-s="search" data-sys="search"><i></i>search <small>row</small></span>
+    </div></div>
+  <div class="box" id="left" style="left:16px;top:112px;width:836px;height:372px">
+    <div class="tabs" id="tabs">
+      <span class="tab on" data-t="wiki" data-sys="wiki"><i></i>Wiki<kbd>1</kbd></span>
+      <span class="tab" data-t="graph" data-sys="graph"><i></i>Graph<kbd>2</kbd></span>
+      <span class="tab" data-t="search" data-sys="search"><i></i>Search<kbd>3</kbd></span>
+      <span class="tab" data-t="trace" data-sys="trace"><i></i>Trace<kbd>4</kbd></span></div>
+    <div class="view on" data-v="wiki">
+      <div class="tree" id="tree">
+        <div class="dir">agent/</div><div>Dietary preference: kosher</div><div>Dietary preference: vegan</div><div class="new" id="newfile">Dislikes sushi</div><div>Likes pizza</div>
+        <div class="dir">projects/</div><div>Payments API rate limit</div><div>Use pnpm in the web repo</div>
+        <div class="dir">team/</div><div>Maya owns billing</div><div>The team batches releases</div><div class="sel">MEMORY</div></div>
+      <div class="page" id="page"><h3>MEMORY</h3><div class="by">loaded into the agent at the start of every turn</div>The user prefers concise answers. Team notes live under <a href="team/">team/</a>; personal preferences under <a href="agent/">agent/</a>.</div>
+    </div>
+    <div class="view" data-v="graph">
+      <svg class="gsvg" width="836" height="334" viewBox="0 0 836 334">
+        <line class="g-old" x1="560" y1="70" x2="710" y2="110"/><line class="g-old" x1="600" y1="168" x2="740" y2="196"/><line class="g-old" x1="560" y1="268" x2="700" y2="280"/><line class="g-old" x1="710" y1="110" x2="740" y2="196"/>
+        <g class="gnew" id="g-links"><line class="g-link" x1="320" y1="168" x2="560" y2="70"/><line class="g-link" x1="320" y1="168" x2="600" y2="168"/><line class="g-link" x1="320" y1="168" x2="560" y2="268"/>
+          <text class="sm" x="410" y="104">Markdown link</text><text class="sm" x="440" y="160">Markdown link</text><text class="sm" x="410" y="240">Markdown link</text></g>
+        <circle class="g-node" cx="560" cy="70" r="11"/><text x="520" y="48">Dietary preference: vegan</text>
+        <circle class="g-node" cx="600" cy="168" r="11"/><text x="620" y="173">Dietary preference: kosher</text>
+        <circle class="g-node" cx="560" cy="268" r="11"/><text x="530" y="298">Likes pizza</text>
+        <circle class="g-dim" cx="710" cy="110" r="8"/><circle class="g-dim" cx="740" cy="196" r="8"/><circle class="g-dim" cx="700" cy="280" r="8"/>
+        <g class="gnew" id="g-node"><circle class="ring" id="ring" cx="320" cy="168" r="16"/><circle class="g-mem" cx="320" cy="168" r="16"/><text class="lbl" x="272" y="140">Dislikes sushi</text></g>
+      </svg>
+    </div>
+    <div class="view" data-v="search">
+      <div class="qbox" id="q"><span class="c">⌕ search…</span></div>
+      <table class="tbl"><tr><th>title</th><th>folder</th><th>identifier</th><th>snippet</th></tr>
+        <tr class="new" id="srow"><td><b>Dislikes sushi</b></td><td>agent/</td><td id="td-by">${ID}</td><td>The user does not like <mark>sushi</mark>.</td></tr>
+        <tr><td>Likes pizza</td><td>agent/</td><td>agent/likes-pizza.md</td><td>The user likes pizza.</td></tr>
+        <tr><td>Dietary preference: vegan</td><td>agent/</td><td>agent/vegan.md</td><td>The user eats vegan…</td></tr>
+        <tr><td>Maya owns billing</td><td>team/people/</td><td>team/maya.md</td><td>Maya Chen owns the billing service…</td></tr></table>
+    </div>
+    <div class="view" data-v="trace">
+      <table class="tbl tr" id="trace"><tr><th>field</th><th>wiki</th><th>omp record</th><th>graph</th><th>search</th></tr>
+      ${[
+        ['identifier',['file path','keep'],['same path','keep'],['node key','keep'],['document key','keep']],
+        ['media_type',['Markdown file','shape'],['text/markdown','keep'],['preserved','keep'],['preserved','keep']],
+        ['body',['Markdown text','keep'],['exact text','keep'],['heading + link edges','shape'],['indexed text','shape']],
+        ['attributes',['no metadata supplied','none'],['{}','keep'],['{} preserved','keep'],['{} preserved','keep']],
+        ['links',['Markdown links','shape'],['explicit targets','keep'],['graph edges','shape'],['preserved','keep']],
+      ].map(f=>`<tr><td>${f[0]}</td>${f.slice(1).map(([t,c])=>`<td style="color:${{keep:'var(--keep)',shape:'var(--shape)',add:'var(--omp)',drop:'var(--opaque)',none:'#3d424c'}[c]};${c==='drop'?'font-style:italic':''}">${t}</td>`).join('')}</tr>`).join('')}</table>
+    </div>
+  </div>
+  <div class="box" id="agentbox" data-sys="agent" style="left:864px;top:112px;width:400px;height:372px">
+    <div class="bar"><span class="dot"></span><b>Agent</b>works inside the wiki folder</div>
+    <div class="chat" id="chat">
+      <div class="msg u" id="m-user">remember I don't like sushi</div>
+      <div class="msg tool" id="m-read"><b>read</b> MEMORY.md</div>
+      <div class="msg tool" id="m-ls"><b>ls</b> agent/</div>
+      <div class="msg tool w" id="m-write"><b>write</b> agent/dislikes-sushi.md<div class="file">${escapeHTML(BODY)}</div></div>
+      <div class="msg a" id="m-done">Saved with links to the related notes.</div>
+    </div>
+    <div class="input"><span id="typed"></span><span class="send" id="send">Send</span></div>
+  </div>
+  <div class="box" id="receipts" style="left:16px;top:496px;width:1248px;height:130px">
+    <div class="bar"><span class="dot" style="--sys:var(--keep)"></span><b>Import status</b>presentation example<span class="n">one shared record</span></div>
+    <div class="rlog">
+      <div class="new" id="r-new"><span class="t">export</span><span class="who">wiki</span><span><i></i>ready</span><span><span class="id">${ID}</span> · four core fields + links</span></div>
+      <div><span class="t">graph</span><span class="who">adapter</span><span id="status-graph">waiting</span><span>Uses the heading and explicit link targets.</span></div>
+      <div><span class="t">search</span><span class="who">adapter</span><span id="status-search">waiting</span><span>Indexes the body under the same identifier.</span></div>
+    </div></div>
+
+  <div class="conv" id="conv">
+    <div class="head"><h4>Converting a wiki page into <em>one OMP record</em></h4>
+      <div class="legend"><span id="lg-file" style="--lc:var(--keep)"><i style="background:var(--keep)"></i>preserve source</span><span id="lg-res" style="--lc:var(--shape)"><i style="background:var(--shape)"></i>format + link targets</span><span id="lg-sync" style="--lc:var(--omp)"><i style="background:var(--omp)"></i>empty attributes</span></div></div>
+    <div class="side md" id="md"><div class="bar"><span class="dot"></span><b>Wiki page</b><span class="pathsrc" id="P-path">${ID}</span></div>
+      <div class="code" id="L-body">${escapeHTML(BODY).replace(/\[(Vegan|Kosher|Pizza)\]\([^)]+\)/g, link=>`<span class="wl" id="WL${['Vegan','Kosher','Pizza'].findIndex(name=>link.startsWith('['+name+']'))}">${link}</span>`)}</div></div>
+    <div class="source" id="sources">
+      <div class="src-card" id="sc-type"><b>Declare the body's format</b><br><code>text/markdown</code> tells the receiving system how to read this text.</div>
+      <div class="src-card" id="sc-links"><b>Standard Markdown links stay in the body</b><br><code>[Vegan](vegan.md)</code> keeps its label and relative target. The shared identifier preserves the file's directory.</div>
+      <div class="src-card" id="sc-targets"><b>Markdown links → explicit OMP links</b><br><code>vegan.md → agent/vegan.md</code><br>Resolve each target relative to the source file's directory.</div>
+      <div class="src-card sync" id="sc-attributes"><b>attributes: {}</b><br>No extra metadata was supplied. The creation time is unknown, so it is omitted.</div>
+      <div class="src-card" id="sc-complete"><b>Four core fields + explicit links</b><br>The original Markdown and its three link targets travel together in one OMP object.</div>
+    </div>
+    <div class="side rec" id="recbox"><div class="bar" style="--sys:var(--omp)"><span class="dot"></span><b>OMP record</b><span class="n" id="recpath">four core fields + links</span></div>
+      <div class="code" id="reccode">${REC.map(recLine).join('')}</div></div>
+    <svg class="wires" id="wires" width="1248" height="514"></svg>
+  </div>
+
+  <div class="spot" id="spot"></div>
+  <div class="tip" id="tip"></div>
+`;
+}
+
+// ---------------- helpers ----------------
+const $ = (s,sel) => s.querySelector(sel);
+function rectOf(s, el){ const a=el.getBoundingClientRect(), b=s.getBoundingClientRect(), k=b.width/W; return {x:(a.left-b.left)/k, y:(a.top-b.top)/k, w:a.width/k, h:a.height/k}; }
+function spot(s, el, pad=8){
+  const sp=$(s,'#spot');
+  if(!el){ sp.classList.remove('on'); return; }
+  const r = el.nodeType ? rectOf(s,el) : el;
+  Object.assign(sp.style,{left:(r.x-pad)+'px',top:(r.y-pad)+'px',width:(r.w+2*pad)+'px',height:(r.h+2*pad)+'px'}); sp.classList.add('on');
+}
+function union(s, ...els){ const rs=els.map(e=>rectOf(s,e)); const x=Math.min(...rs.map(r=>r.x)), y=Math.min(...rs.map(r=>r.y)); return {x,y,w:Math.max(...rs.map(r=>r.x+r.w))-x,h:Math.max(...rs.map(r=>r.y+r.h))-y}; }
+function tip(s, el, html, side='right'){
+  const t=$(s,'#tip');
+  if(!el){ t.classList.remove('on'); return; }
+  t.classList.remove('on'); t.innerHTML=html; t.dataset.side=side;
+  const r = el.nodeType ? rectOf(s,el) : el, tw=Math.min(300, t.offsetWidth||300), th=t.offsetHeight||60, gap=20;
+  let x,y;
+  if(side==='right'){ x=r.x+r.w+gap; y=r.y+Math.min(r.h/2-24, 40); }
+  if(side==='left'){ x=r.x-tw-gap; y=r.y+Math.min(r.h/2-24, 40); }
+  if(side==='bottom'){ x=r.x+Math.min(r.w/2-30, 60); y=r.y+r.h+gap; }
+  if(side==='top'){ x=r.x+Math.min(r.w/2-30, 60); y=r.y-th-gap; }
+  const cx=Math.max(10,Math.min(W-tw-10,x)), cy=Math.max(10,Math.min(H-th-10,y));
+  t.style.left=cx+'px'; t.style.top=cy+'px';
+  t.style.setProperty('--ax', Math.max(14,Math.min(tw-26, r.x+r.w/2-cx))+'px');
+  t.style.setProperty('--ay', Math.max(12,Math.min(th-24, r.y+Math.min(r.h/2,52)-cy))+'px');
+  void t.offsetWidth; t.classList.add('on');
+}
+function lit(s, st){ s.querySelectorAll('.step').forEach(e=>e.classList.remove('now')); const e=$(s,`.step[data-s="${st}"]`); e.classList.add('lit','now'); const a=$(s,`.arr[data-a="${st}"]`); if(a) a.classList.add('lit'); }
+function tab(s, t){ s.querySelectorAll('.tab').forEach(e=>e.classList.toggle('on',e.dataset.t===t)); s.querySelectorAll('.view').forEach(v=>v.classList.toggle('on',v.dataset.v===t)); }
+function what(s, html){ $(s,'#what').innerHTML=html; }
+function flash(el){ el.classList.remove('flash'); void el.offsetWidth; el.classList.add('flash'); }
+async function type(el, text, w, ms=55){ el.classList.add('caret'); el.textContent=''; for(const ch of text){ el.textContent+=ch; await w(ms); } el.classList.remove('caret'); }
+async function scramble(el, final, w, frames=16){ const hx='0123456789abcdef'; for(let i=0;i<frames;i++){ el.textContent=final.replace(/[0-9a-f]/g,()=>hx[Math.random()*16|0]); await w(50);} el.textContent=final; }
+
+// conversion: fill a record slot and draw a wire from its source
+const CONV_X=16, CONV_Y=112;
+function wire(s, srcEl, slot, cat){
+  const svg=$(s,'#wires'), md=$(s,'#md'), rb=$(s,'#recbox');
+  const t=rectOf(s,slot), mdr=rectOf(s,md), rr=rectOf(s,rb);
+  const x2=rr.x-CONV_X, y2=t.y+t.h/2-CONV_Y;
+  let x1,y1;
+  if(srcEl){ const r=rectOf(s,srcEl); x1=Math.min(r.x+r.w, mdr.x+mdr.w)-CONV_X; y1=r.y+r.h/2-CONV_Y; }
+  else {
+    const r=rectOf(s,$(s,'.src-card.on')); x1=r.x+r.w-CONV_X; y1=r.y+r.h/2-CONV_Y; }
+  const mx=(x1+x2)/2;
+  const NS='http://www.w3.org/2000/svg';
+  const p=document.createElementNS(NS,'path');
+  p.setAttribute('d',`M${x1} ${y1} C ${mx} ${y1}, ${mx} ${y2}, ${x2} ${y2}`); p.setAttribute('pathLength','1'); p.setAttribute('class','w-'+cat);
+  const c1=document.createElementNS(NS,'circle'); c1.setAttribute('cx',x1); c1.setAttribute('cy',y1); c1.setAttribute('r',3.5); c1.setAttribute('class','f-'+cat);
+  const c2=document.createElementNS(NS,'circle'); c2.setAttribute('cx',x2); c2.setAttribute('cy',y2); c2.setAttribute('r',3.5); c2.setAttribute('class','f-'+cat);
+  svg.append(p,c1,c2); void p.getBoundingClientRect();
+  requestAnimationFrame(()=>{ p.classList.add('on'); c1.classList.add('on'); setTimeout(()=>c2.classList.add('on'),700); });
+}
+function dimWires(s){ s.querySelectorAll('#wires path').forEach(p=>p.classList.add('dim')); }
+function fill(s, i){
+  const slot=$(s,`#reccode [data-i="${i}"]`), v=slot.querySelector('.v');
+  v.textContent=v.dataset.v; slot.classList.add('filled', slot.dataset.cat); flash(slot); return slot;
+}
+async function convert(s, w, idxs, {hl, gap=650}={}){
+  for(const i of idxs){
+    const slot=$(s,`#reccode [data-i="${i}"]`), cat=slot.dataset.cat, sid=slot.dataset.src;
+    const src = sid ? $(s,'#'+sid) : null;
+    if(src){ src.classList.add('hl', cat); }
+    wire(s, src, slot, cat);
+    await w(700); fill(s,i); await w(gap);
+  }
+}
+function legend(s, k){ s.querySelectorAll('.conv .legend span').forEach(e=>e.classList.toggle('on', e.id==='lg-'+k)); }
+function src(s, id){ s.querySelectorAll('.src-card').forEach(c=>c.classList.toggle('on', c.id===id)); }
+function conversionBeat(s, title, text, progress){
+  $(s,'#recpath').textContent=progress;
+  // Rebuilding earlier slides must not replace the current slide's narration.
+  if(s.classList.contains('instant')) return;
+  const narration=document.getElementById('txt');
+  narration.querySelector('h3').textContent=title;
+  narration.querySelector('p').innerHTML=text;
+}
+
+// ---------------- the story ----------------
+// Chapters group the steps; one click = one step.
+const CHAPTERS = [
+  {name:'The agent remembers', steps:[
+    {t:'"Remember I don\'t like sushi"', p:'The agent receives a preference to remember.',
+     run: async (s,w)=>{
+       spot(s,$(s,'#agentbox')); await w(400); await type($(s,'#typed'), "remember I don't like sushi", w);
+       await w(350); $(s,'#send').classList.add('press'); await w(180); $(s,'#send').classList.remove('press');
+       $(s,'#typed').textContent=''; $(s,'#m-user').classList.add('on'); }},
+    {t:'A plain Markdown note', p:'The agent writes the preference and ordinary Markdown links: <code>[Vegan](vegan.md)</code>, <code>[Kosher](kosher.md)</code> and <code>[Pizza](likes-pizza.md)</code>.',
+     run: async (s,w)=>{
+       lit(s,'agent'); what(s,'<b>Agent</b> reading <span class="q">MEMORY.md</span>');
+       $(s,'#m-read').classList.add('on'); await w(700); $(s,'#m-ls').classList.add('on'); await w(700);
+       what(s,'<b>Agent</b> writing <span class="q">'+ID+'</span>');
+       $(s,'#m-write').classList.add('on'); await w(400); spot(s,$(s,'#m-write')); }},
+  ]},
+  {name:'The wiki', steps:[
+    {t:'The wiki displays the note', p:'The file already has a usable identifier: <code>agent/dislikes-sushi.md</code>. Its Markdown links point to other files in that directory.',
+     run: async (s,w)=>{
+       lit(s,'wiki'); tab(s,'wiki'); what(s,'<b>wiki</b> new page <span class="q">'+ID+'</span>');
+       s.querySelectorAll('#tree .sel').forEach(e=>e.classList.remove('sel')); $(s,'#newfile').classList.add('on','sel');
+       const pg=$(s,'#page');
+       pg.innerHTML='<h3>Dislikes sushi</h3><p>The user does not like sushi.</p><p>Related: <a href="agent/vegan.md">Vegan</a>, <a href="agent/kosher.md">Kosher</a>, <a href="agent/likes-pizza.md">Pizza</a>.</p><div class="meta">'+ID+'</div>';
+       flash(pg); spot(s,$(s,'#left')); await w(900); }},
+  ]},
+  {name:'Conversion to OMP', hero:true, steps:[
+    {t:'Wiki → OMP, one field at a time', p:'One animation fills the four core fields, then turns each Markdown link into an explicit OMP <code>links</code> entry.',
+     run: async (s,w)=>{
+       lit(s,'omp'); what(s,'<b>OMP conversion</b> <span class="q">Markdown file → core fields + links</span>');
+       spot(s,null); $(s,'#conv').classList.add('on'); await w(1000);
+
+       conversionBeat(s,'The file path → identifier','Use the file path as the <code>identifier</code>. The memory can be matched across stores without inventing a new ID.','1 of 5 · identifier');
+       legend(s,'file'); await convert(s,w,[1],{gap:1400}); await w(800);
+
+       conversionBeat(s,'Markdown → media_type','Set <code>media_type</code> to <code>text/markdown</code>. The receiving system knows how to interpret the body.','2 of 5 · media_type');
+       dimWires(s); legend(s,'res'); src(s,'sc-type'); await convert(s,w,[2],{gap:1400}); await w(1000);
+
+       conversionBeat(s,'The full note → body','Copy the original text into <code>body</code>, including the Markdown links. JSON escapes line breaks as <code>\\n</code>; reading the object restores the same text.','3 of 5 · body');
+       dimWires(s); legend(s,'file'); src(s,'sc-links'); await convert(s,w,[3],{gap:900});
+       await w(1200);
+
+       conversionBeat(s,'No extra metadata → attributes: {}','Keep <code>attributes</code> empty. We do not know when the memory was created, so no creation date is added.','4 of 5 · attributes');
+       dimWires(s); legend(s,'sync'); src(s,'sc-attributes'); await convert(s,w,[4],{gap:1400}); await w(1000);
+
+       conversionBeat(s,'Markdown links → OMP links','Each Markdown link also becomes a <code>links</code> entry. Resolve <code>vegan.md</code> from <code>agent/dislikes-sushi.md</code> to the target identifier <code>agent/vegan.md</code>.','5 of 5 · links');
+       dimWires(s); legend(s,'res'); src(s,'sc-targets');
+       for(let n=0;n<LINKS.length;n++) await convert(s,w,[6+n],{gap:1000});
+       await w(1200);
+
+       conversionBeat(s,'The complete OMP object','The four core fields and three explicit links travel together. The same record can now go to the graph and search adapters.','complete · valid JSON');
+       legend(s,null); dimWires(s); src(s,'sc-complete'); flash($(s,'#recbox')); await w(1100); }},
+    {t:'Share the same record', p:'The adapters receive the same OMP object, with the original body and links intact.',
+     run: async (s,w)=>{
+       spot(s,null); $(s,'#conv').classList.add('away'); await w(900); $(s,'#conv').classList.remove('on');
+       $(s,'#r-new').classList.add('on'); $(s,'#count').innerHTML='<b>15</b> memories';
+       what(s,'<b>OMP record ready</b> <span class="q">'+ID+'</span>'); spot(s,$(s,'#r-new'),6); }},
+  ]},
+  {name:'Every store imports it', steps:[
+    {t:'The graph reads the record', p:'The graph adapter uses the identifier for a node, the body’s heading for its label, and each explicit <code>links</code> entry for an edge.',
+     run: async (s,w)=>{
+       lit(s,'graph'); tab(s,'graph'); what(s,'<b>graph</b> imported <span class="q">1 memory node · 3 Markdown link edges</span>');
+       spot(s,$(s,'#left')); await w(600); $(s,'#g-node').classList.add('on'); $(s,'#ring').classList.add('go');
+       await w(1300); $(s,'#g-links').classList.add('on'); $(s,'#status-graph').textContent='imported'; }},
+    {t:'Search indexes the body', p:'The search adapter indexes the text under the same identifier. Searching for sushi finds the new memory.',
+     run: async (s,w)=>{
+       lit(s,'search'); tab(s,'search'); what(s,'<b>search</b> imported <span class="q">body text → searchable document</span>');
+       spot(s,$(s,'#left')); await w(500);
+       const q=$(s,'#q'); q.textContent='⌕ '; for(const ch of 'sushi'){ q.textContent+=ch; await w(110); }
+       await w(300); const r=$(s,'#srow'); r.classList.add('on'); flash(r); $(s,'#status-search').textContent='imported'; }},
+  ]},
+  {name:'One memory, many views', steps:[
+    {t:'One object, different views', p:'The wiki renders Markdown, the graph uses the explicit links, and search indexes text. One OMP object carries the memory between them.',
+     run: async (s,w)=>{
+       tab(s,'trace'); what(s,'<b>Same OMP object</b> <span class="q">wiki · graph · search</span>');
+       s.querySelectorAll('.step').forEach(e=>e.classList.remove('now')); spot(s,$(s,'#left')); }},
+  ]},
+];
+const STEPS = CHAPTERS.flatMap((c,ci)=>c.steps.map((st,si)=>({...st, ci, si})));
+
+// ---------------- player ----------------
+// Forward plays a step's animation. Back, jumps and scrubbing show a step's
+// finished state instantly, like flipping back through slides.
+const stage=document.getElementById('stage'), vp=document.getElementById('vp');
+new ResizeObserver(()=>{ stage.style.transform=`scale(${vp.clientWidth/W})`; }).observe(vp);
+const CANCEL=Symbol('cancel');
+let gen=0, cur=0, auto=false, busy=false;
+const chaptersEl=document.getElementById('chapters');
+chaptersEl.style.gridTemplateColumns = CHAPTERS.map(c=>`${Math.max(1.6,c.steps.length)}fr`).join(' ');
+chaptersEl.innerHTML=CHAPTERS.map((c,ci)=>`<div class="chapter ${c.hero?'hero':''}" data-c="${ci}"><div class="nm">${c.hero?'★ ':''}${c.name}</div><div class="ticks">${c.steps.map((st,si)=>`<button aria-label="${escapeHTML(st.t)}" title="${escapeHTML(st.t)}" data-i="${STEPS.findIndex(x=>x.ci===ci&&x.si===si)}"></button>`).join('')}</div></div>`).join('');
+// scrub: press on the step bar and drag
+let scrubbing=false;
+const tickAt = e => { const el=document.elementFromPoint(e.clientX, e.clientY); const b=el&&el.closest&&el.closest('.ticks button'); return b?+b.dataset.i:null; };
+chaptersEl.addEventListener('pointerdown',e=>{ const i=tickAt(e); if(i===null) return; scrubbing=true; chaptersEl.setPointerCapture(e.pointerId); if(i===cur+1) go(i,true); else show(i); });
+chaptersEl.addEventListener('pointermove',e=>{ if(!scrubbing) return; const i=tickAt(e); if(i!==null && i!==cur) show(i); });
+addEventListener('pointerup',()=>{ scrubbing=false; });
+chaptersEl.addEventListener('click',e=>{ const b=e.target.closest('.ticks button'); if(b && e.detail===0) show(+b.dataset.i); });
+const next=()=>{ if(busy) { show(cur); return; } if(cur<STEPS.length-1) go(cur+1,true); };   // a click mid-animation finishes it
+const prev=()=>{ if(cur>0) show(cur-1); else show(0); };
+document.getElementById('next').onclick=next;
+document.getElementById('prev').onclick=prev;
+document.getElementById('replay').onclick=()=>go(cur,true);
+vp.onclick=e=>{ if(e.target.closest('a')) e.preventDefault(); next(); };
+addEventListener('keydown',e=>{
+  if(e.target.closest && e.target.closest('input,textarea,button,a')) return;
+  if(e.key==='ArrowRight'||e.key===' '||e.key==='PageDown'){ e.preventDefault(); next(); }
+  if(e.key==='ArrowLeft'||e.key==='PageUp'){ e.preventDefault(); prev(); }
+  if(e.key==='Home'){ show(0); } if(e.key==='End'){ show(STEPS.length-1); }
+  if(e.key==='r'||e.key==='R'){ go(cur,true); }
+});
+const mClick=document.getElementById('m-click'), mAuto=document.getElementById('m-auto');
+mClick.onclick=()=>{ auto=false; mClick.classList.add('on'); mAuto.classList.remove('on'); };
+mAuto.onclick=()=>{ auto=true; mAuto.classList.add('on'); mClick.classList.remove('on'); if(!busy) setTimeout(()=>auto&&!busy&&next(),600); };
+
+function narrate(i){
+  const st=STEPS[i], ch=CHAPTERS[st.ci];
+  document.getElementById('narr').classList.toggle('hero',!!ch.hero);
+  document.getElementById('no').innerHTML=`${i+1}<small>of ${STEPS.length}</small>`;
+  const t=document.getElementById('txt'); t.innerHTML=`<div class="chap">${ch.hero?'★ ':''}${ch.name}</div><h3>${st.t}</h3><p>${st.p}</p>`; t.style.animation='none'; void t.offsetWidth; t.style.animation='';
+  chaptersEl.querySelectorAll('.ticks button').forEach(b=>{ const j=+b.dataset.i; b.className=j<i?'done':j===i?'on':''; });
+  chaptersEl.querySelectorAll('.chapter').forEach(c=>c.classList.toggle('cur',+c.dataset.c===st.ci));
+  document.getElementById('prev').disabled = i===0;
+  document.getElementById('next').disabled = i===STEPS.length-1;
+}
+async function replayTo(n, g){
+  const now=()=>g===gen?Promise.resolve():Promise.reject(CANCEL);
+  build(stage); stage.classList.add('instant');
+  for(let j=0;j<n;j++) await STEPS[j].run(stage, now);
+  stage.querySelectorAll('#wires path, #wires circle').forEach(p=>p.classList.add('on'));
+  stage.querySelectorAll('.flash,.ring.go').forEach(el=>el.classList.remove('flash','go'));
+}
+// show step i already finished (rewind / jump / scrub)
+async function show(i){
+  const g=++gen; cur=i; busy=false; document.getElementById('next').classList.remove('ready');
+  narrate(i);
+  document.getElementById('txt').style.animation='none';
+  try{
+    await replayTo(i+1, g);
+    void stage.offsetWidth; stage.classList.remove('instant');
+    if(!auto) document.getElementById('next').classList.add('ready');
+    else { const w=ms=>new Promise((res,rej)=>setTimeout(()=>g===gen?res():rej(CANCEL),ms)); await w(Math.max(3500, STEPS[i].p.split(' ').length*230)); if(auto) next(); }
+  }catch(e){ if(e!==CANCEL) console.error(e); }
+}
+// play step i forward, from the end state of step i-1
+async function go(i){
+  const g=++gen; cur=i; busy=true; document.getElementById('next').classList.remove('ready');
+  const w=ms=>new Promise((res,rej)=>setTimeout(()=>g===gen?res():rej(CANCEL), ms/(window.__SPEED||1)));
+  narrate(i);
+  try{
+    await replayTo(i, g);
+    void stage.offsetWidth; stage.classList.remove('instant');
+    await w(250);
+    await STEPS[i].run(stage, w);
+    busy=false;
+    if(auto){ await w(Math.max(3500, STEPS[i].p.split(' ').length*230)); if(auto) next(); }
+    else if(i<STEPS.length-1){ await w(1200); document.getElementById('next').classList.add('ready'); }
+  }catch(e){ if(e!==CANCEL) console.error(e); }
+}
+window.__state=()=>({cur,busy,n:STEPS.length});
+window.__memory=MEMORY;
+show(0);
+</script>
+</body>
+</html>

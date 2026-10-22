@@ -1,0 +1,727 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>One memory, four ways to watch it move · omp-live</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,400;0,9..144,600;1,9..144,400;1,9..144,600&family=Hanken+Grotesk:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;700&display=swap" rel="stylesheet">
+<style>
+/* ======================================================================
+   Signal desk. Every system has one colour and keeps it everywhere:
+   wiki amber · OMP coral · graph cyan · search rose.
+   What happens to a field is a fill style:
+   kept mint · reshaped lilac · added coral · opaque hatched grey.
+   ====================================================================== */
+.omp{
+  --bg:#0b0c0f; --stage:#101217; --pane:#161920; --pane2:#1c2028; --line:#272c36; --line2:#353b47;
+  --tx:#ece8e0; --tx2:#a0a5ae; --tx3:#666c77;
+  --wiki:#f3b54a; --omp:#ff6a45; --graph:#4fd6e0; --search:#ff8db4;
+  --keep:#6fdc9b; --shape:#ac9dff; --added:#ff6a45; --opaque:#5d636e;
+  --k:#8fc3ff; --s:#e9d9ae; --num:#ffb86b; --c:#6b717c; --fm:#f5d08e;
+  --display:"Fraunces","Iowan Old Style",Georgia,serif;
+  --ui:"Hanken Grotesk","Avenir Next","Segoe UI",sans-serif;
+  --mono:"JetBrains Mono",ui-monospace,"SF Mono",Menlo,monospace;
+  background:
+    radial-gradient(900px 420px at 85% -5%, rgba(255,106,69,.13), transparent 60%),
+    radial-gradient(700px 380px at -10% 30%, rgba(79,214,224,.07), transparent 60%),
+    radial-gradient(rgba(255,255,255,.045) 1px, transparent 1.2px) 0 0/18px 18px,
+    var(--bg);
+  color:var(--tx); font-family:var(--ui);
+  border-radius:var(--radius,16px); padding:26px 22px 28px;
+  display:flex; flex-direction:column; gap:26px;
+  -webkit-font-smoothing:antialiased;
+}
+.omp *{box-sizing:border-box}
+
+/* ---------- page header ---------- */
+.mast{display:grid;grid-template-columns:1fr auto;gap:18px;align-items:end;padding:0 4px}
+.eyebrow{font:500 10.5px var(--mono);letter-spacing:.14em;text-transform:uppercase;color:var(--omp);display:flex;align-items:center;gap:8px}
+.eyebrow::before{content:"";width:18px;height:1px;background:var(--omp)}
+.mast h1{font:400 34px/1.05 var(--display);letter-spacing:-.02em;margin:10px 0 8px;font-variation-settings:"opsz" 144}
+.mast h1 em{font-style:italic;color:var(--omp)}
+.mast p{margin:0;color:var(--tx2);font-size:13.5px;line-height:1.5;max-width:520px}
+.mast p code{font:12px var(--mono);color:var(--tx)}
+.legend{display:grid;gap:7px;font:500 10.5px var(--mono);color:var(--tx2);padding:12px 14px;border:1px solid var(--line);border-radius:12px;background:rgba(22,25,32,.7);backdrop-filter:blur(6px)}
+.legend .row{display:flex;gap:12px;align-items:center}
+.legend .row b{font-weight:500;color:var(--tx3);width:46px;letter-spacing:.08em;text-transform:uppercase;font-size:9px}
+.sw{display:inline-flex;align-items:center;gap:5px}
+.sw i{width:9px;height:9px;border-radius:50%;display:inline-block}
+.sw i.sq{border-radius:2px}
+
+/* ---------- option card ---------- */
+.panel{position:relative;border:1px solid var(--line);border-radius:16px;background:linear-gradient(180deg,#14161c, #0f1115);overflow:hidden;box-shadow:0 30px 60px -40px rgba(0,0,0,.9), inset 0 1px 0 rgba(255,255,255,.04)}
+.phead{display:grid;grid-template-columns:auto 1fr auto;gap:16px;align-items:center;padding:16px 18px 14px}
+.phead .letter{font:italic 400 44px/0.8 var(--display);color:var(--omp);width:34px;text-align:center;font-variation-settings:"opsz" 144;text-shadow:0 0 24px rgba(255,106,69,.35)}
+.phead h2{font:600 19px/1.1 var(--display);margin:0;letter-spacing:-.01em}
+.phead p{margin:4px 0 0;color:var(--tx2);font-size:12.5px;line-height:1.45}
+.phead button{display:flex;align-items:center;gap:6px;font:600 11.5px var(--ui);color:var(--tx);background:var(--pane2);border:1px solid var(--line2);border-radius:999px;padding:7px 13px 7px 11px;cursor:pointer;transition:all .2s}
+.phead button:hover{border-color:var(--omp);color:#fff;box-shadow:0 0 0 3px rgba(255,106,69,.15)}
+.phead button svg{width:13px;height:13px}
+.vp{position:relative;width:100%;aspect-ratio:720/440;overflow:hidden;border-top:1px solid var(--line);background:var(--stage)}
+.stage{position:absolute;left:0;top:0;width:720px;height:440px;transform-origin:0 0;font-size:11px}
+
+/* ---------- shared stage parts ---------- */
+.box{position:absolute;background:var(--pane);border:1px solid var(--line);border-radius:10px;overflow:hidden;box-shadow:0 14px 30px -22px rgba(0,0,0,.9)}
+.box[data-sys]{box-shadow:inset 0 2px 0 var(--sys),0 14px 30px -22px rgba(0,0,0,.9)}
+[data-sys=wiki]{--sys:var(--wiki)} [data-sys=omp]{--sys:var(--omp)} [data-sys=graph]{--sys:var(--graph)} [data-sys=search]{--sys:var(--search)} [data-sys=code]{--sys:var(--k)}
+.bar{height:25px;display:flex;align-items:center;gap:7px;padding:0 10px;font-size:10px;color:var(--tx3);border-bottom:1px solid var(--line);white-space:nowrap;overflow:hidden}
+.bar b{color:var(--tx);font-weight:600;font-size:10.5px;letter-spacing:.01em}
+.bar .dot{width:7px;height:7px;border-radius:50%;background:var(--sys,var(--tx3));box-shadow:0 0 8px var(--sys,transparent)}
+.bar .n{margin-left:auto;font:9px var(--mono);color:var(--tx3);overflow:hidden;text-overflow:ellipsis}
+.pre{font:8.2px/12px var(--mono);padding:6px 9px;color:var(--tx)}
+.ln{white-space:pre;overflow:hidden;text-overflow:ellipsis;border-radius:3px;transition:background .5s,box-shadow .5s;padding-left:3px}
+.ln.hide{display:none}
+.ln.src{background:rgba(243,181,74,.16);box-shadow:inset 2px 0 0 var(--wiki)}
+.ln.hereln{background:rgba(255,106,69,.1);box-shadow:inset 2px 0 0 var(--omp)}
+.k{color:var(--k)} .s{color:var(--s)} .num{color:var(--num)} .c{color:var(--c)} .fm{color:var(--fm)}
+.wl{color:var(--k);text-decoration:underline;text-decoration-style:dotted;text-underline-offset:2px}
+.flash{animation:flash 1.3s ease-out}
+@keyframes flash{from{background:rgba(255,106,69,.32)}to{background:transparent}}
+
+/* caption rail */
+.rail{position:absolute;left:0;right:0;bottom:0;height:36px;border-top:1px solid var(--line);background:linear-gradient(180deg,#14171d,#111318);display:grid;grid-template-columns:132px 1fr;align-items:center}
+.rail .segs{position:absolute;left:0;right:0;top:-1px;height:2px;display:grid;grid-template-columns:repeat(5,1fr);gap:3px}
+.rail .segs i{background:var(--line2);position:relative;overflow:hidden}
+.rail .segs i::after{content:"";position:absolute;inset:0;background:var(--omp);transform:scaleX(0);transform-origin:left;transition:transform .5s ease}
+.rail .segs i.done::after{transform:none;background:var(--tx3)}
+.rail .segs i.on::after{transform:none;box-shadow:0 0 10px var(--omp)}
+.rail .num{padding-left:12px;font:500 9.5px var(--mono);color:var(--tx3);letter-spacing:.08em;text-transform:uppercase;white-space:nowrap}
+.rail .num b{color:var(--omp);font-weight:700;margin-right:6px}
+.rail .num span{color:var(--tx)}
+.rail .txt{padding-right:14px;font-size:11px;line-height:1.3;color:var(--tx);display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;animation:fadein .4s ease}
+.rail .txt code{font:9.8px var(--mono);color:var(--fm);background:rgba(255,255,255,.05);border-radius:3px;padding:0 3px}
+@keyframes fadein{from{opacity:0;transform:translateY(3px)}}
+
+/* ---------- A · trace, built live ---------- */
+.A .gut{position:absolute;top:24px;height:300px;width:16px}
+.A .gut svg{position:absolute;inset:0;overflow:visible}
+.A .gut line{stroke:var(--line2);stroke-width:1.2;stroke-dasharray:2 4}
+.A .gut.lit line{stroke:var(--omp);stroke-dasharray:4 5;animation:march .6s linear infinite;filter:drop-shadow(0 0 3px var(--omp))}
+.A .gut polygon{fill:var(--line2)} .A .gut.lit polygon{fill:var(--omp)}
+@keyframes march{to{stroke-dashoffset:-9}}
+.A .grow{display:grid;grid-template-columns:36px 1fr;gap:0 6px;padding:2.5px 0;border-bottom:1px solid rgba(255,255,255,.05);font:8.2px/11px var(--mono)}
+.A .grow .l{color:var(--tx3);font:500 8.5px var(--ui);text-transform:uppercase;letter-spacing:.06em}
+.A .grow .rel{color:var(--graph)}
+.A .grow .rel.p{color:var(--tx2)}
+.A .grow .car{color:var(--tx3)}
+.A .rcpt{display:grid;grid-template-columns:58px 52px 1fr;gap:6px;padding:5px 12px;font-size:10px;border-bottom:1px solid rgba(255,255,255,.05);align-items:center;color:var(--tx2)}
+.A .rcpt .t{font:9px var(--mono);color:var(--tx3)}
+.A .rcpt .who{font:600 9.5px var(--mono);color:var(--tx)}
+.A .rcpt i{display:inline-block;width:7px;height:7px;border-radius:50%;margin-right:6px;background:var(--keep);box-shadow:0 0 8px var(--keep)}
+.A .rcpt i.held{background:var(--graph);box-shadow:0 0 8px var(--graph)}
+.A .rcpt b{color:var(--tx);font-weight:600}
+.A .resolve{position:absolute;z-index:8;font:500 8.5px var(--mono);background:var(--pane2);border:1px solid var(--k);color:var(--tx);border-radius:7px;padding:4px 8px;white-space:nowrap;box-shadow:0 0 0 3px rgba(143,195,255,.12),0 10px 24px -8px rgba(0,0,0,.8);opacity:0;transform:translateY(4px);transition:all .3s}
+.A .resolve.on{opacity:1;transform:none}
+.A .resolve .arrow{color:var(--tx3);margin:0 4px}
+.A .resolve .id{color:var(--k)}
+
+/* ---------- B · field lanes ---------- */
+.B .hd{position:absolute;top:12px;height:36px;border-radius:9px;background:var(--pane);border:1px solid var(--line);display:flex;flex-direction:column;justify-content:center;padding:0 10px 0 12px;transition:all .35s;box-shadow:inset 3px 0 0 var(--sys)}
+.B .hd b{font-size:11px;font-weight:700;color:var(--tx)}
+.B .hd small{font:8.3px var(--mono);color:var(--tx3)}
+.B .hd.on{border-color:var(--sys);box-shadow:inset 3px 0 0 var(--sys),0 0 0 3px color-mix(in srgb,var(--sys) 20%,transparent),0 0 24px -6px var(--sys)}
+.B .fl{position:absolute;left:12px;width:80px;height:20px;font:500 9px var(--mono);display:flex;align-items:center;color:var(--tx2)}
+.B .lane{position:absolute;left:96px;right:12px;height:20px;border-bottom:1px solid rgba(255,255,255,.04)}
+.B .cell{position:absolute;height:19px;border-radius:5px;font:500 8.6px var(--ui);display:flex;align-items:center;padding:0 7px;white-space:nowrap;overflow:hidden;opacity:0;transform:scale(.85);transition:opacity .25s,transform .35s cubic-bezier(.3,1.5,.5,1)}
+.B .cell.on{opacity:1;transform:none}
+.B .cell.keep{background:rgba(111,220,155,.1);color:var(--keep);border:1px solid rgba(111,220,155,.3)}
+.B .cell.shape{background:rgba(172,157,255,.12);color:var(--shape);border:1px solid rgba(172,157,255,.35)}
+.B .cell.shape::before{content:"↻";margin-right:4px;opacity:.8}
+.B .cell.here{background:rgba(255,106,69,.18);color:#ffb39f;border:1px solid rgba(255,106,69,.55);font-weight:700;box-shadow:0 0 14px -4px var(--omp)}
+.B .cell.here::before{content:"+";margin-right:4px;color:var(--omp)}
+.B .cell.drop{color:var(--tx3);font-style:italic;border:1px solid var(--line2);background:repeating-linear-gradient(135deg,rgba(255,255,255,.035) 0 3px,transparent 3px 7px)}
+.B .cell.none{color:#4b505a;border:1px dashed #2c313b}
+.B .dot{position:absolute;width:7px;height:7px;border-radius:50%;background:var(--tx);z-index:5;transition:transform .55s cubic-bezier(.6,0,.3,1),opacity .3s,background .3s,box-shadow .3s}
+.B .tot{position:absolute;top:378px;height:18px;font:600 8px var(--mono);white-space:nowrap;display:flex;gap:4px;align-items:center;opacity:0;transform:translateY(3px);transition:all .4s}
+.B .tot.on{opacity:1;transform:none}
+.B .tot span{border-radius:4px;padding:2px 5px}
+
+/* ---------- C · under the hood ---------- */
+.C .code{font:8.8px/13.6px var(--mono);padding:4px 0;counter-reset:ln}
+.C .code div{padding:0 10px 0 30px;white-space:pre;position:relative;transition:background .2s,color .2s,box-shadow .2s;color:var(--tx3)}
+.C .code div::before{counter-increment:ln;content:counter(ln);position:absolute;left:0;width:20px;text-align:right;color:#3d434e}
+.C .code .fn{color:var(--k);font-weight:700}
+.C .code div.ran{color:var(--tx2)}
+.C .code div.cur{background:rgba(255,106,69,.13);color:var(--tx);box-shadow:inset 2px 0 0 var(--omp)}
+.C .code div.cur::before{color:var(--omp)}
+.C .code .out{position:absolute;right:10px;color:var(--num);opacity:0;transform:translateX(-4px);transition:all .3s}
+.C .code div.ran .out{opacity:1;transform:none}
+.C .gsvg text{font:7.5px var(--ui);fill:var(--tx2)}
+.C .gn,.C .ge{opacity:0;transition:opacity .45s}
+.C .gn.on,.C .ge.on{opacity:1}
+.C .srow{font:8.2px/13px var(--mono);padding:6px 10px}
+.C .srow div{opacity:0;transform:translateX(-4px);transition:all .3s}
+.C .srow div.on{opacity:1;transform:none}
+.C .note{position:absolute;left:8px;top:336px;width:704px;height:66px;border-radius:10px;border:1px solid var(--line);background:linear-gradient(90deg,rgba(255,106,69,.08),transparent 40%),var(--pane);padding:9px 14px 9px 16px;font-size:10.5px;line-height:1.5;color:var(--tx2);box-shadow:inset 3px 0 0 var(--omp)}
+.C .note b{color:var(--tx);font-weight:700}
+.C .note code,.C .note .m{font:9.5px var(--mono);color:var(--fm)}
+
+/* graph glyphs, shared by C and D */
+.g-mem{fill:var(--graph);filter:drop-shadow(0 0 6px rgba(79,214,224,.7))}
+.g-node{fill:var(--pane2);stroke:var(--tx2);stroke-width:1.2}
+.g-dim{fill:var(--pane2);stroke:var(--line2);stroke-width:1}
+.g-human{fill:var(--keep)} .g-agent{fill:var(--wiki)} .g-system{fill:var(--tx3)}
+.g-link{stroke:var(--graph);stroke-dasharray:3 3;stroke-width:1.2}
+.g-prov{stroke:var(--line2);stroke-width:1}
+.g-old{stroke:#2a2f39;stroke-width:1}
+
+/* ---------- D · the projector ---------- */
+.D .hdr{position:absolute;left:14px;right:14px;top:8px;height:22px;display:flex;align-items:baseline;gap:10px}
+.D .hdr h1{font:600 14px var(--display);margin:0}
+.D .hdr h1 em{color:var(--omp)}
+.D .hdr h1 small{font:400 10px var(--ui);color:var(--tx3);margin-left:6px}
+.D .hdr .o{font:9px var(--mono);color:var(--tx3)}
+.D .hdr .n{margin-left:auto;font:500 10px var(--mono);color:var(--tx2)}
+.D .hdr .n b{color:var(--tx)}
+.D .flow{position:absolute;left:8px;right:8px;top:32px;height:36px;border:1px solid var(--line);border-radius:10px;background:var(--pane);display:flex;align-items:center;padding:0 10px 0 12px;gap:10px}
+.D .flow .what{flex:1;min-width:0;font-size:10.5px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;color:var(--tx)}
+.D .flow .what .q{color:var(--tx3);font-family:var(--mono);font-size:9.5px}
+.D .chain{display:flex;align-items:center}
+.D .step{display:flex;align-items:center;gap:5px;padding:3px 8px;border:1px solid var(--line2);border-radius:14px;background:var(--pane2);color:var(--tx3);font:500 9.5px var(--ui);white-space:nowrap;transition:all .3s}
+.D .step i{width:6px;height:6px;border-radius:50%;background:var(--line2);transition:all .3s}
+.D .step small{font:9px var(--mono)}
+.D .step.lit{color:var(--tx);border-color:var(--sys);background:color-mix(in srgb,var(--sys) 14%,var(--pane2))}
+.D .step.lit i{background:var(--sys);box-shadow:0 0 0 3px color-mix(in srgb,var(--sys) 25%,transparent),0 0 10px var(--sys)}
+.D .step[data-s=agent]{--sys:var(--k)}
+.D .arr{width:14px;height:1px;background:var(--line2);position:relative;margin:0 2px;transition:background .3s}
+.D .arr::after{content:"";position:absolute;right:-1px;top:-3px;border:3.5px solid transparent;border-left:5px solid var(--line2);transition:border-left-color .3s}
+.D .arr.lit{background:var(--tx2)}.D .arr.lit::after{border-left-color:var(--tx2)}
+.D .tabs{display:flex;align-items:stretch;gap:2px;height:25px;padding:0 6px;border-bottom:1px solid var(--line);font:500 10px var(--ui);color:var(--tx3)}
+.D .tab{padding:0 10px;display:flex;align-items:center;gap:5px;border-bottom:2px solid transparent;transition:all .25s}
+.D .tab i{width:5px;height:5px;border-radius:50%;background:var(--sys)}
+.D .tab.on{color:var(--tx);border-bottom-color:var(--sys)}
+.D .tab[data-t=trace]{--sys:var(--omp)}
+.D .view{position:absolute;left:0;right:0;top:25px;bottom:0;opacity:0;transition:opacity .35s;pointer-events:none}
+.D .view.on{opacity:1}
+.D .tree{position:absolute;left:0;top:0;bottom:0;width:148px;border-right:1px solid var(--line);font-size:9.5px;padding:6px 0;color:var(--tx2)}
+.D .tree div{padding:1.5px 10px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.D .tree .dir{color:var(--tx3);font:500 9px var(--mono)}
+.D .tree .sel{background:rgba(243,181,74,.12);color:var(--tx);box-shadow:inset 2px 0 0 var(--wiki)}
+.D .tree .new{max-height:0;opacity:0;transition:all .4s}
+.D .tree .new.on{max-height:17px;opacity:1}
+.D .page{position:absolute;left:148px;right:0;top:0;bottom:0;padding:12px 16px;font-size:10.5px;line-height:1.55;overflow:hidden;color:var(--tx2)}
+.D .page h3{margin:0 0 4px;font:600 16px var(--display);color:var(--tx)}
+.D .page .by{font-size:9.5px;color:var(--tx3);margin-bottom:8px}
+.D .page .by b{color:var(--tx2);font-weight:600}
+.D .page .meta{font:8.5px/1.6 var(--mono);color:var(--tx3);margin-top:10px;border-top:1px solid var(--line);padding-top:7px}
+.D .page a{color:var(--k);text-decoration:none;border-bottom:1px dotted var(--k)}
+.D .gsvg text{font:8px var(--ui);fill:var(--tx2)}
+.D .gsvg .sm{font:7.5px var(--mono);fill:var(--tx3)}
+.D .gsvg .lbl{font:600 9px var(--ui);fill:var(--tx)}
+.D .gnew{opacity:0;transition:opacity .45s}
+.D .gnew.on{opacity:1}
+.D .pulse{transform-box:fill-box;transform-origin:center}
+.D .pulse.go{animation:pulse 1s ease 2}
+.D .ring{fill:none;stroke:var(--graph);opacity:0;transform-box:fill-box;transform-origin:center}
+.D .ring.go{animation:ring 1.4s ease-out 2}
+@keyframes pulse{40%{transform:scale(1.4)}}
+@keyframes ring{0%{opacity:.8;transform:scale(1)}100%{opacity:0;transform:scale(3.2)}}
+.D .stbl{width:100%;border-collapse:collapse;font-size:9.5px;color:var(--tx2)}
+.D .stbl td,.D .stbl th{padding:4px 10px;border-bottom:1px solid rgba(255,255,255,.05);text-align:left;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:180px}
+.D .stbl th{color:var(--tx3);font:500 8.5px var(--mono);text-transform:uppercase;letter-spacing:.06em}
+.D .stbl td b{color:var(--tx)}
+.D .stbl mark{background:rgba(255,141,180,.25);color:#ffd0e0;padding:0 1px;border-radius:2px}
+.D .stbl tr.new{display:none}
+.D .stbl tr.new.on{display:table-row}
+.D .stbl.tr td{font-size:8.3px;padding:1.6px 8px}
+.D .stbl.tr th{padding:3px 8px}
+.D .q-box{margin:8px 10px 4px;border:1px solid var(--line2);border-radius:7px;background:var(--pane2);padding:4px 9px;font:10px var(--mono);color:var(--tx)}
+.D .chat{font-size:9.6px;padding:9px 10px;display:flex;flex-direction:column;gap:6px}
+.D .msg{opacity:0;transform:translateY(5px);transition:all .35s;max-width:100%}
+.D .msg.on{opacity:1;transform:none}
+.D .msg.u{align-self:flex-end;background:linear-gradient(135deg,#ff7a55,#ff5a36);color:#fff;padding:5px 10px;border-radius:11px 11px 3px 11px;font-weight:500;box-shadow:0 6px 16px -8px var(--omp)}
+.D .msg.tool{font:8.5px/1.5 var(--mono);color:var(--tx3);border-left:1px solid var(--line2);padding-left:8px}
+.D .msg.tool b{color:var(--k);font-weight:500}
+.D .msg.a{background:var(--pane2);border:1px solid var(--line2);padding:5px 10px;border-radius:11px 11px 11px 3px;color:var(--tx)}
+.D .rlog{font-size:9.5px;color:var(--tx2)}
+.D .rlog div{display:grid;grid-template-columns:58px 52px 1fr;gap:6px;padding:3px 12px;border-bottom:1px solid rgba(255,255,255,.05)}
+.D .rlog .t{font:8.5px var(--mono);color:var(--tx3)}
+.D .rlog .who{font:600 9px var(--mono);color:var(--tx)}
+.D .rlog i{display:inline-block;width:6px;height:6px;border-radius:50%;margin-right:6px;background:var(--keep)}
+.D .rlog .new{display:none}
+.D .rlog .new.on{display:grid;animation:flash 1.3s ease-out}
+
+@media (prefers-reduced-motion: reduce){ .omp *{animation-duration:.01ms!important;transition-duration:.01ms!important} }
+</style>
+</head>
+<body>
+<div class="omp" id="root">
+  <header class="mast">
+    <div>
+      <div class="eyebrow">omp-live · how a memory converts</div>
+      <h1>One memory, <em>four ways</em> to watch it move.</h1>
+      <p>Each option replays the same real conversion: the agent writes <code>agent/dislikes-sushi.md</code>, omp-sync turns it into one OMP record, and the graph and search stores import it in their own shapes.</p>
+    </div>
+    <div class="legend">
+      <div class="row"><b>System</b><span class="sw"><i style="background:var(--wiki)"></i>wiki</span><span class="sw"><i style="background:var(--omp)"></i>OMP</span><span class="sw"><i style="background:var(--graph)"></i>graph</span><span class="sw"><i style="background:var(--search)"></i>search</span></div>
+      <div class="row"><b>Field</b><span class="sw"><i class="sq" style="background:var(--keep)"></i>kept</span><span class="sw"><i class="sq" style="background:var(--shape)"></i>reshaped</span><span class="sw"><i class="sq" style="background:var(--added)"></i>added</span><span class="sw"><i class="sq" style="background:repeating-linear-gradient(135deg,#5d636e 0 2px,transparent 2px 4px);border:1px solid #5d636e"></i>opaque</span></div>
+    </div>
+  </header>
+</div>
+<script>
+// ---------------------------------------------------------------------------
+// One real memory from omp-live/demo/: the agent wrote agent/dislikes-sushi.md
+// and omp-sync exported it as memories/3ad00eea-….json. The values below come
+// from that file, that record and the receipt the sync wrote.
+// ---------------------------------------------------------------------------
+const ID = '3ad00eea-e4d9-4638-af8e-efb6079a2040', IDS = '3ad00eea-e4d9…';
+const CS = 'sha256:c0484d7b6a6205a5…';
+const TIME = '2026-10-20T20:48:21Z';
+const LINKS = [
+  ['Dietary preference: vegan',  '8d13dae7…'],
+  ['Dietary preference: kosher', '67c18e6f…'],
+  ['Likes pizza',                '8c25b323…'],
+];
+// trace.py's per-field mapping (labels shortened), classified like trace.html
+const FIELDS = [
+  ['identifier', ['minted by normalize()','keep'], ['as is','keep'],          ['node id','keep'],               ['row key','keep']],
+  ['title',      ['front matter','keep'],          ['as is','keep'],          ['node label','shape'],           ['indexed column','shape']],
+  ['tags',       ['front matter','keep'],          ['as is','keep'],          ['node colour','shape'],          ['indexed column','shape']],
+  ['provenance', ['front matter','keep'],          ['system:wiki','here'],    ['contributor nodes','shape'],    ['kinds only','drop']],
+  ['created_at', ['minted by normalize()','keep'], ['as is','keep'],          ['opaque record','drop'],         ['opaque record','drop']],
+  ['path',       ['where the file sits','keep'],   ['as is','keep'],          ['opaque: no hierarchy','drop'],  ['column · folder facet','shape']],
+  ['media_type', ['default on export','keep'],     ['as is','keep'],          ['opaque record','drop'],         ['opaque record','drop']],
+  ['body',       ['the file body','keep'],         ['as is','keep'],          ['opaque record','drop'],         ['indexed column','shape']],
+  ['links',      ['[[wikilinks]] in body','shape'],['resolved to ids','keep'],['edges · rel + carrier','shape'],['dangling count only','drop']],
+  ['version',    ['not in the file','none'],       ['version 1','here'],      ['opaque record','drop'],         ['opaque record','drop']],
+  ['updated_at', ['not in the file','none'],       ['updated_at','here'],     ['opaque record','drop'],         ['opaque record','drop']],
+  ['checksum',   ['not stored','none'],            ['checksum','here'],       ['opaque record','drop'],         ['opaque record','drop']],
+];
+const STATUS_COLOR = {keep:'var(--keep)',shape:'var(--shape)',here:'var(--omp)',drop:'var(--opaque)',none:'#3a3f49'};
+
+// ---------------- runtime ----------------
+const CANCEL = Symbol('cancel');
+const waiter = (ctl,g) => ms => new Promise((res,rej)=>setTimeout(()=>ctl.gen===g?res():rej(CANCEL), ms/(window.__SPEED||1)));
+const esc = s => String(s).replace(/[&<>"]/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
+const STEPS=['write','normalize','export','sync','import'];
+const rail = () => `<div class="rail"><div class="segs">${STEPS.map(()=>'<i></i>').join('')}</div><div class="num"></div><div class="txt"></div></div>`;
+function setCap(s,i,html){
+  s.querySelectorAll('.rail .segs i').forEach((e,j)=>e.className=j<i?'done':j===i?'on':'');
+  s.querySelector('.rail .num').innerHTML = i<STEPS.length ? `<b>0${i+1}</b><span>${STEPS[i]}</span>` : `<b>✓</b><span>done</span>`;
+  const t=s.querySelector('.rail .txt'); t.innerHTML=html; t.style.animation='none'; void t.offsetWidth; t.style.animation='';
+}
+function posIn(el, stage){ let x=0,y=0; while(el && el!==stage){ x+=el.offsetLeft; y+=el.offsetTop; el=el.offsetParent; } return {x,y}; }
+function flash(el){ el.classList.remove('flash'); void el.offsetWidth; el.classList.add('flash'); }
+async function scramble(el, final, w, frames=12){ const hx='0123456789abcdef'; for(let i=0;i<frames;i++){ el.textContent=final.replace(/[0-9a-f](?![^:]*:)/g,()=>hx[Math.random()*16|0]); await w(45);} el.textContent=final; }
+const bar = (sys,title,sub,n='',nid='') => `<div class="bar"><span class="dot"></span><b>${title}</b>${sub}<span class="n" ${nid?`id="${nid}"`:''}>${n}</span></div>`;
+
+// =================== A · the Trace page, built live ===================
+const A_COL = i => 8 + i*180, A_W = 164;
+const WIKI_LINES = [
+  ['c','---'],
+  ['fm min',`<span class="fm">identifier:</span> 3ad00eea-e4d9-4638-af8e-efb6079a2040`,'identifier'],
+  ['',`<span class="fm">title:</span> Dislikes sushi`,'title'],
+  ['',`<span class="fm">tags:</span>`,'tags'],['','- preference','tags'],['','- person','tags'],
+  ['',`<span class="fm">provenance:</span>`,'provenance'],
+  ['','- id: user:presenter','provenance'],['','  kind: human','provenance'],['','  contribution: instructed','provenance'],
+  ['','- id: agent:omp-live','provenance'],['','  kind: agent','provenance'],['','  contribution: authored','provenance'],
+  ['fm min',`<span class="fm">created_at:</span> '2026-10-20T20:48:21Z'`,'created_at'],
+  ['c','---'],
+  ['', 'The user does not like sushi.','body'],
+  ['', 'Consistent with their food','body'],
+  ['', 'preferences (<span class="wl" data-l="0">[[Dietary preference: vegan]]</span>,','body'],
+  ['', '<span class="wl" data-l="1">[[Dietary preference: kosher]]</span>,','body'],
+  ['', '<span class="wl" data-l="2">[[Likes pizza]]</span>) — it just rules','body'],
+  ['', 'sushi out for team meals…','body'],
+];
+const J = (k,v,cls='s') => `  <span class="k">"${k}"</span>: <span class="${cls}">${v}</span>,`;
+const EXPORT_LINES = [
+  ['{', null],
+  [J('identifier','"3ad00eea-e4d9-4638-…"'),'identifier'],
+  [J('title','"Dislikes sushi"'),'title'],
+  [J('tags','["preference", "person"]'),'tags'],
+  ['  <span class="k">"provenance"</span>: [','provenance'],
+  ['    {<span class="s">"id": "user:presenter"</span>, …},','provenance'],
+  ['    {<span class="s">"id": "agent:omp-live"</span>, …},','provenance'],
+  ['    {<span class="s">"id": "system:wiki"</span>, "imported"}','sys',1],
+  ['  ],','provenance'],
+  [J('created_at','"2026-10-20T20:48:21Z"'),'created_at'],
+  [J('path','"agent/dislikes-sushi.md"'),'path'],
+  [J('media_type','"text/markdown"'),'media_type'],
+  [J('body','"The user does not like sushi…"'),'body'],
+  ['  <span class="k">"links"</span>: [','links'],
+  ['    {"target": <span class="s">"8d13dae7…"</span>, inline},','link0'],
+  ['    {"target": <span class="s">"67c18e6f…"</span>, inline},','link1'],
+  ['    {"target": <span class="s">"8c25b323…"</span>, inline}','link2'],
+  ['  ],','links'],
+  [J('version','{"value": <span class="num">1</span>}',''),'version',1],
+  [J('updated_at','"2026-10-20T20:48:21Z"'),'updated_at',1],
+  ['  <span class="k">"checksum"</span>: <span class="s cs">"sha256:c0484d7b6a62…"</span>','checksum',1],
+  ['}', null],
+];
+function buildA(s){
+  const gut = x => `<div class="gut" style="left:${x}px"><svg width="16" height="300"><line x1="8" y1="0" x2="8" y2="300"/><polygon points="3,146 13,146 8,154" transform="rotate(-90 8 150)"/></svg></div>`;
+  s.innerHTML = `
+  <div class="box" data-sys="wiki" style="left:${A_COL(0)}px;top:8px;width:${A_W}px;height:322px">${bar('wiki','Wiki',' markdown file')}
+    <div class="pre" id="aw">${WIKI_LINES.map(([c,t,f])=>`<div class="ln hide ${c}" data-f="${f||''}">${t}</div>`).join('')}</div></div>
+  ${gut(A_COL(1)-16)}
+  <div class="box" data-sys="omp" style="left:${A_COL(1)}px;top:8px;width:${A_W}px;height:322px">${bar('omp','OMP export',' record','','an')}
+    <div class="pre" id="ae">${EXPORT_LINES.map(([t,f,h])=>`<div class="ln hide ${h?'hereln':''}" data-f="${f||''}">${t}</div>`).join('')}</div></div>
+  ${gut(A_COL(2)-16)}
+  <div class="box" data-sys="graph" style="left:${A_COL(2)}px;top:8px;width:${A_W}px;height:322px">${bar('graph','Graph',' node + edges','','ag-n')}
+    <div class="pre" id="ag" style="padding-top:3px"></div></div>
+  ${gut(A_COL(3)-16)}
+  <div class="box" data-sys="search" style="left:${A_COL(3)}px;top:8px;width:${A_W}px;height:322px">${bar('search','Search',' indexed row','','as-n')}
+    <div class="pre" id="as"></div></div>
+  <div class="box" style="left:8px;top:336px;width:704px;height:64px">${bar('','Receipts',' for this memory','omp-export/receipts/')}<div id="ar"></div></div>
+  <div class="resolve" id="ares"></div>
+  ${rail()}`;
+}
+async function playA(s,w){
+  buildA(s);
+  const wl=[...s.querySelectorAll('#aw .ln')], el=[...s.querySelectorAll('#ae .ln')], gut=[...s.querySelectorAll('.gut')];
+  setCap(s,0,'The agent writes <code>agent/dislikes-sushi.md</code>: front matter and a body with three <code>[[wikilinks]]</code>. No identifier yet.');
+  for(const l of wl){ if(l.classList.contains('min')) continue; l.classList.remove('hide'); await w(80); }
+  await w(800);
+  setCap(s,1,'<code>normalize()</code> mints an <code>identifier</code> and a <code>created_at</code>, once, and writes them back into the file.');
+  for(const l of wl.filter(l=>l.classList.contains('min'))){ l.classList.remove('hide'); flash(l); await w(550); }
+  await w(500);
+  setCap(s,2,'<code>export()</code>: front matter becomes fields, the file\'s location becomes <code>path</code>, each <code>[[link]]</code> is looked up by title.');
+  gut[0].classList.add('lit'); s.querySelector('#an').textContent='memories/3ad00eea….json';
+  const show = async (f, srcF, ms=170) => {
+    const src = srcF ? wl.filter(l=>l.dataset.f===srcF) : [];
+    src.forEach(l=>l.classList.add('src'));
+    el.filter(l=>l.dataset.f===f).forEach(l=>{ l.classList.remove('hide'); flash(l); });
+    await w(ms); src.forEach(l=>l.classList.remove('src'));
+  };
+  el[0].classList.remove('hide');
+  for(const f of ['identifier','title','tags','provenance','created_at']) await show(f,f,380);
+  await show('path',null,380); await show('media_type',null,380); await show('body','body',440);
+  el.filter(l=>l.dataset.f==='links').forEach(l=>l.classList.remove('hide'));
+  const res=s.querySelector('#ares');
+  for(let i=0;i<3;i++){
+    const link=s.querySelector(`#aw .wl[data-l="${i}"]`), p=posIn(link,s);
+    link.parentElement.classList.add('src');
+    res.innerHTML=`[[${esc(LINKS[i][0])}]]<span class="arrow">→ title index →</span><span class="id">${LINKS[i][1]}</span>`;
+    res.style.left=Math.min(p.x, 400)+'px'; res.style.top=(p.y+15)+'px'; res.classList.add('on');
+    await w(700);
+    const dst=el.find(l=>l.dataset.f==='link'+i); dst.classList.remove('hide'); flash(dst);
+    res.classList.remove('on'); link.parentElement.classList.remove('src');
+    await w(250);
+  }
+  await w(300);
+  setCap(s,3,'<code>_outbound</code> validates, checks tombstones, sets <code>version</code> and <code>updated_at</code>, appends <code>system:wiki</code>, computes the checksum.');
+  for(const f of ['sys','version','updated_at']) await show(f,null,430);
+  const ck=el.find(l=>l.dataset.f==='checksum'); ck.classList.remove('hide'); flash(ck);
+  await scramble(ck.querySelector('.cs'),'"sha256:c0484d7b6a62…"',w,14);
+  el[el.length-1].classList.remove('hide');
+  await w(300);
+  s.querySelector('#ar').insertAdjacentHTML('beforeend',`<div class="rcpt flash"><span class="t">20:48:21</span><span class="who">wiki</span><span><i></i><b>accepted</b> · imported; version 1</span></div>`);
+  await w(900);
+  setCap(s,4,'Graph and search each <code>import_()</code> the record in their own shape. The wiki already holds this checksum, so it is skipped.');
+  gut[1].classList.add('lit');
+  const g=s.querySelector('#ag');
+  const GR = [
+    ['node',IDS],['kind','memory'],['label','Dislikes sushi'],
+    ['edges',`<span class="rel">relates_to</span> 8d13dae7… <span class="car">inline</span>`],
+    ['',`<span class="rel">relates_to</span> 67c18e6f… <span class="car">inline</span>`],
+    ['',`<span class="rel">relates_to</span> 8c25b323… <span class="car">inline</span>`],
+    ['',`<span class="rel p">prov:instructed</span> user:presenter`],
+    ['',`<span class="rel p">prov:authored</span> agent:omp-live`],
+    ['',`<span class="rel p">prov:imported</span> system:wiki`],
+    ['record','<span class="c">full record, kept opaque</span>'],
+  ];
+  for(const [l,v] of GR){ g.insertAdjacentHTML('beforeend',`<div class="grow flash"><span class="l">${l}</span><span>${v}</span></div>`); await w(170); }
+  s.querySelector('#ag-n').textContent='6 edges';
+  gut[2].classList.add('lit');
+  const sr=s.querySelector('#as');
+  const SR = ['{', J('identifier','"3ad00eea-e4d9…"'), J('path','"agent/dislikes-sushi.md"'), J('title','"Dislikes sushi"'),
+    J('body','"The user does not like…"'), J('tags','"preference person"'), J('authors','"agent,human,system"').replace(/,$/,''), '}',
+    '<span class="c">+ docs_fts: title, body, tags</span>'];
+  for(const t of SR){ sr.insertAdjacentHTML('beforeend',`<div class="ln flash">${t}</div>`); await w(150); }
+  s.querySelector('#as-n').textContent='docs + docs_fts';
+  s.querySelector('#ar').insertAdjacentHTML('beforeend',`<div class="rcpt flash"><span class="t">20:48:21</span><span class="who">sync</span><span><i class="held"></i>graph and search hold <b>c0484d7b</b> · wiki at base, not re-imported</span></div>`);
+  await w(1500);
+  setCap(s,5,'One file in, one record, two native shapes. Nothing invented: the provenance is who actually wrote it.');
+}
+
+// =================== B · field lanes ===================
+const B_COLS = [['wiki','Wiki','agent/dislikes-sushi.md'],['omp','OMP export','memories/3ad00eea….json'],['graph','Graph','graph/store.db'],['search','Search','search/index.db · FTS5']];
+const B_X = i => 96 + i*154, B_CW = 146, B_ROW = r => 58 + r*26.4;
+function buildB(s){
+  s.innerHTML = `
+  ${B_COLS.map(([sys,n,sub],i)=>`<div class="hd" data-sys="${sys}" style="left:${B_X(i)}px;width:${B_CW}px"><b>${n}</b><small>${sub}</small></div>`).join('')}
+  ${FIELDS.map((f,r)=>`<div class="lane" style="top:${B_ROW(r)}px"></div><div class="fl" style="top:${B_ROW(r)}px">${f[0]}</div>
+     ${[1,2,3,4].map(c=>`<div class="cell ${f[c][1]}" data-r="${r}" data-c="${c-1}" style="left:${B_X(c-1)}px;width:${B_CW}px;top:${B_ROW(r)}px">${f[c][0]}</div>`).join('')}
+     <div class="dot" data-r="${r}" style="left:${B_X(0)-12}px;top:${B_ROW(r)+6}px;opacity:0"></div>`).join('')}
+  ${[0,1,2,3].map(i=>`<div class="tot" data-c="${i}" style="left:${B_X(i)}px"></div>`).join('')}
+  ${rail()}`;
+}
+function tally(c){
+  const n={keep:0,shape:0,here:0,drop:0,none:0}; FIELDS.forEach(f=>n[f[c+1][1]]++);
+  const L={keep:'kept',shape:'reshaped',here:'added',drop:'opaque',none:'absent'};
+  return Object.keys(n).filter(k=>n[k]).map(k=>`<span style="color:${STATUS_COLOR[k]};background:color-mix(in srgb,${STATUS_COLOR[k]} 14%,transparent)">${n[k]} ${L[k]}</span>`).join('');
+}
+async function playB(s,w){
+  buildB(s);
+  const hd=[...s.querySelectorAll('.hd')], dots=[...s.querySelectorAll('.dot')];
+  const cell=(r,c)=>s.querySelector(`.cell[data-r="${r}"][data-c="${c}"]`);
+  const at = c => B_X(c)-B_X(0)+12+B_CW-14;
+  const paint = (d,f) => { const col=STATUS_COLOR[f]; d.style.background=col; d.style.boxShadow=f==='drop'?'none':`0 0 8px ${col}`; };
+  const col = async (c, order, pause=80) => {
+    hd.forEach((h,i)=>h.classList.toggle('on',i===c));
+    for(const r of order){
+      const d=dots[r], f=FIELDS[r][c+1][1];
+      if(f==='none'){ cell(r,c).classList.add('on'); await w(pause); continue; }
+      d.style.opacity=1; d.style.transform=`translateX(${at(c)}px)`; paint(d,f);
+      setTimeout(()=>{cell(r,c).classList.add('on'); if(c===3) d.style.opacity=0;},280/(window.__SPEED||1));
+      await w(pause);
+    }
+    await w(600);
+    const t=s.querySelector(`.tot[data-c="${c}"]`); t.innerHTML=tally(c); t.classList.add('on');
+  };
+  const all=[...FIELDS.keys()];
+  setCap(s,0,'The agent writes front matter and a body. Some fields are in the file, some are not yet.');
+  hd[0].classList.add('on');
+  for(const r of [1,2,3,5,7,8,9,10,11]){ cell(r,0).classList.add('on'); await w(110); }
+  await w(600);
+  setCap(s,1,'<code>normalize()</code> mints <code>identifier</code> and <code>created_at</code> into the front matter.');
+  for(const r of [0,4]){ cell(r,0).classList.add('on'); flash(cell(r,0)); await w(450); }
+  await w(300);
+  dots.forEach((d,r)=>{ const f=FIELDS[r][1][1]; if(f!=='none'){ d.style.opacity=1; d.style.transform=`translateX(${at(0)}px)`; paint(d,f); } });
+  await w(700);
+  setCap(s,2,'<code>export()</code> copies every field into the record. <code>[[wikilinks]]</code> are resolved to identifiers on the way.');
+  cell(6,0).classList.add('on'); flash(cell(6,0)); await w(400);
+  const t0=s.querySelector('.tot[data-c="0"]'); t0.innerHTML=tally(0); t0.classList.add('on');
+  await col(1, all.filter(r=>FIELDS[r][2][1]!=='here'));
+  setCap(s,3,'The sync adds what only it can know: <code>version</code>, <code>updated_at</code>, its own contributor, the checksum.');
+  for(const r of all.filter(r=>FIELDS[r][2][1]==='here')){
+    const d=dots[r]; d.style.transition='none'; d.style.transform=`translateX(${at(1)}px) scale(0)`; d.style.opacity=1; void d.offsetWidth;
+    d.style.transition=''; paint(d,'here'); d.style.transform=`translateX(${at(1)}px)`;
+    cell(r,1).classList.add('on'); await w(280);
+  }
+  const t1=s.querySelector('.tot[data-c="1"]'); t1.innerHTML=tally(1); t1.classList.add('on');
+  await w(700);
+  setCap(s,4,'Graph and search keep what they can use natively. Everything else rides along in the opaque record, so export is lossless.');
+  await col(2, all, 90);
+  await col(3, all, 90);
+  hd.forEach(h=>h.classList.remove('on'));
+  await w(1400);
+  setCap(s,5,'This is <code>trace.py</code>\'s table in motion: what each system keeps, reshapes, adds or holds opaque.');
+}
+
+// =================== C · under the hood ===================
+const C_CODE = [
+  ['<span class="fn">wiki.normalize()</span>', null],
+  ['  meta["identifier"] = new_identifier()', '3ad00eea…', 'identifier'],
+  ['  meta["created_at"] = now_iso()', '20:48:21Z', 'created_at'],
+  ['<span class="fn">wiki.export()</span>', null],
+  ['  record = dict(front_matter)', 'title, tags, prov', 'fm'],
+  ['  record["path"] = rel', 'agent/…sushi.md', 'path'],
+  ['  record.setdefault("media_type", …)', 'text/markdown', 'media_type'],
+  ['  record["body"] = body', '277 chars', 'body'],
+  ['  for m in WIKILINK.finditer(body)', '3 links', 'links'],
+  ['<span class="fn">sync._outbound("wiki")</span>', null],
+  ['  validate(record)', '✓ 4 required', null],
+  ['  export.is_tombstoned(identifier)', 'no', null],
+  ['  new["version"] = {"value": 1}', 'new memory', 'version'],
+  ['  new["updated_at"] = now_iso()', '20:48:21Z', 'updated_at'],
+  ['  add_contributor(new, "system:wiki")', 'imported', 'sys'],
+  ['  export.put(new)', 'c0484d7b…', 'checksum'],
+  ['  export.receipt(…, "accepted")', 'version 1', 'receipt'],
+  ['<span class="fn">sync._inbound("graph")</span>', null],
+  ['  graph.import_(record)', '1 node · 6 edges', 'graph'],
+  ['<span class="fn">sync._inbound("search")</span>', null],
+  ['  search.import_(record)', 'docs + fts', 'search'],
+];
+const C_REC = [
+  ['identifier','"3ad00eea-e4d9-4638-af8e-efb6079a2040"'],
+  ['created_at','"2026-10-20T20:48:21Z"'],
+  ['fm','  <span class="k">"title"</span>: <span class="s">"Dislikes sushi"</span>, <span class="k">"tags"</span>: [<span class="s">"preference"</span>, <span class="s">"person"</span>],'],
+  ['fm','  <span class="k">"provenance"</span>: [<span class="s">user:presenter, agent:omp-live</span><span class="sysp"></span>],'],
+  ['path','"agent/dislikes-sushi.md"'],
+  ['media_type','"text/markdown"'],
+  ['body','"The user does not like sushi. Consistent with…"'],
+  ['links','[8d13dae7…, 67c18e6f…, 8c25b323…]  relates_to · inline'],
+  ['version','{"value": 1, "comparator": "integer"}'],
+  ['updated_at','"2026-10-20T20:48:21Z"'],
+  ['checksum','"sha256:c0484d7b6a6205a5d9ffea7b…"'],
+];
+function buildC(s){
+  s.innerHTML = `
+  <div class="box" data-sys="code" style="left:8px;top:8px;width:334px;height:322px">${bar('','omp_live',' what runs, in order','sync.py · wiki/adapter.py')}
+    <div class="code">${C_CODE.map(([t,o,k])=>`<div data-k="${k||''}">${t}${o?`<span class="out">${o}</span>`:''}</div>`).join('')}</div></div>
+  <div class="box" data-sys="omp" style="left:350px;top:8px;width:362px;height:178px">${bar('omp','record',' the dict being built','{}','cn')}
+    <div class="pre" id="crec" style="font-size:8.3px"></div></div>
+  <div class="box" data-sys="graph" style="left:350px;top:194px;width:178px;height:136px">${bar('graph','Graph',' nodes + edges')}
+    <svg class="gsvg" width="178" height="110" viewBox="0 0 178 110">
+      <g class="ge" data-g="links"><line class="g-link" x1="66" y1="56" x2="140" y2="18"/><line class="g-link" x1="66" y1="56" x2="150" y2="56"/><line class="g-link" x1="66" y1="56" x2="140" y2="94"/></g>
+      <g class="ge" data-g="prov"><line class="g-prov" x1="66" y1="56" x2="20" y2="20"/><line class="g-prov" x1="66" y1="56" x2="16" y2="58"/><line class="g-prov" x1="66" y1="56" x2="22" y2="94"/></g>
+      <g class="gn" data-g="targets"><circle class="g-node" cx="140" cy="18" r="5"/><text x="102" y="9">diet: vegan</text>
+        <circle class="g-node" cx="150" cy="56" r="5"/><text x="128" y="72">kosher</text>
+        <circle class="g-node" cx="140" cy="94" r="5"/><text x="116" y="108">likes pizza</text></g>
+      <g class="gn" data-g="prov"><rect class="g-human" x="15" y="15" width="10" height="10" rx="2"/><text x="4" y="36">presenter</text>
+        <path class="g-agent" d="M16 52 l6 6 -6 6 -6 -6z"/><text x="2" y="76">omp-live</text>
+        <circle class="g-system" cx="22" cy="94" r="4"/><text x="30" y="97">system:wiki</text></g>
+      <g class="gn" data-g="node"><circle class="g-mem" cx="66" cy="56" r="9"/><text x="42" y="42" style="fill:var(--tx);font-weight:600">Dislikes sushi</text></g>
+    </svg></div>
+  <div class="box" data-sys="search" style="left:534px;top:194px;width:178px;height:136px">${bar('search','Search',' docs row')}
+    <div class="srow">${[['identifier','3ad00eea…'],['path','agent/dislikes…'],['title','Dislikes sushi'],['body','The user does…'],['tags','preference person'],['authors','agent,human,system'],['fts','title · body · tags']]
+      .map(([k,v])=>`<div><span class="k">${k}</span> <span class="s">${v}</span></div>`).join('')}</div></div>
+  <div class="note" id="cnote"></div>
+  ${rail()}`;
+}
+async function playC(s,w){
+  buildC(s);
+  const lines=[...s.querySelectorAll('.code div')], rec=s.querySelector('#crec'), note=s.querySelector('#cnote');
+  const addRec = key => {
+    for(const [k,v] of C_REC.filter(r=>r[0]===key)){
+      const html = k==='fm' ? v : `  <span class="k">"${k}"</span>: <span class="s">${v}</span>,`;
+      rec.insertAdjacentHTML('beforeend',`<div class="ln flash">${html}</div>`);
+    }
+    s.querySelector('#cn').textContent = rec.children.length+' entries';
+  };
+  note.innerHTML = '<b>Input.</b> <span class="m">agent/dislikes-sushi.md</span>, written by the agent with its own <code>write</code> tool. Title, tags and provenance in the front matter (user:presenter instructed, agent:omp-live authored). No identifier. Three <code>[[wikilinks]]</code> in the body.';
+  setCap(s,0,'The agent\'s file lands in <code>wiki/</code>. The watcher fires.');
+  await w(1900);
+  const stepAt = {0:1,3:2,9:3,17:4};
+  const stepTxt = {1:'<code>normalize()</code> mints what the file is missing.',2:'<code>export()</code>: front matter becomes fields; <code>[[links]]</code> are resolved by title.',3:'<code>_outbound</code>: the sync stamps the revision and writes the record.',4:'<code>_inbound</code>: every other system imports it.'};
+  for(let i=0;i<lines.length;i++){
+    if(stepAt[i]!==undefined) setCap(s,stepAt[i],stepTxt[stepAt[i]]);
+    lines.forEach(l=>l.classList.remove('cur')); lines[i].classList.add('cur');
+    await w(stepAt[i]!==undefined?350:430);
+    lines[i].classList.add('ran');
+    const k=lines[i].dataset.k;
+    if(['identifier','created_at','fm','path','media_type','body','links','version','updated_at'].includes(k)) addRec(k);
+    if(k==='links') note.innerHTML='<b>Wikilink resolution.</b> <code>_index()</code> maps every title, path and stem to an identifier: <span class="m">[[Dietary preference: vegan]] → 8d13dae7…</span>, <span class="m">[[Dietary preference: kosher]] → 67c18e6f…</span>, <span class="m">[[Likes pizza]] → 8c25b323…</span>. Each becomes <code>{rel: relates_to, x_carrier: inline}</code>. An unknown title is kept as <code>dangling</code>.';
+    if(k==='sys'){ const p=rec.querySelector('.sysp'); p.innerHTML=', <span style="color:var(--omp)">system:wiki</span>'; flash(p.parentElement); }
+    if(k==='checksum'){ addRec('checksum'); const last=rec.lastElementChild.querySelector('.s'); await scramble(last,'"sha256:c0484d7b6a6205a5d9ffea7b…"',w,12);
+      note.innerHTML='<b>Checksum.</b> SHA-256 over the record without <code>checksum</code>, as JSON with sorted keys and no whitespace (<code>model.canonical</code>). Written to <span class="m">omp-export/memories/3ad00eea-….json</span>.'; }
+    if(k==='receipt') note.innerHTML='<b>Receipt.</b> <span class="m">{"system": "wiki", "outcome": "accepted", "reason": "imported; version 1"}</span>. The wiki\'s <code>base</code> is now this checksum, so it will not re-import its own change.';
+    if(k==='graph'){
+      for(const g of ['node','targets','links','prov']){ s.querySelectorAll(`.gsvg [data-g="${g}"]`).forEach(e=>e.classList.add('on')); await w(280); }
+      note.innerHTML='<b>Graph.</b> One memory node labelled with the title, one dotted edge per inline link, one node per contributor with a <code>provenance:&lt;contribution&gt;</code> edge. The whole record is stored on the node, so <code>export()</code> gives it back unchanged.';
+    }
+    if(k==='search'){
+      for(const d of s.querySelectorAll('.srow div')){ d.classList.add('on'); await w(110); }
+      note.innerHTML='<b>Search.</b> A <code>docs</code> row and an FTS5 row over title, body and tags. Provenance shrinks to its kinds (<span class="m">agent,human,system</span>) for the written-by facet. The full record is kept alongside.';
+    }
+  }
+  lines.forEach(l=>l.classList.remove('cur'));
+  await w(1600);
+  setCap(s,5,'The real call order, lightly simplified. One file in, one record, two native shapes.');
+}
+
+// =================== D · the projector, restyled ===================
+function buildD(s){
+  s.innerHTML = `
+  <div class="hdr"><h1>OMP <em>live</em><small>three systems and an agent</small></h1><span class="o">origin store:eaff2e1e…</span><span class="n" id="dcount"><b>14</b> memories</span></div>
+  <div class="flow"><div class="what" id="dwhat"><span class="q">waiting for a change…</span></div>
+    <div class="chain">
+      <span class="step" data-s="agent"><i></i>Agent</span><span class="arr" data-a="agent"></span>
+      <span class="step" data-s="wiki" data-sys="wiki"><i></i>wiki <small>file</small></span><span class="arr" data-a="wiki"></span>
+      <span class="step" data-s="export" data-sys="omp"><i></i>omp-export <small>record</small></span><span class="arr" data-a="export"></span>
+      <span class="step" data-s="graph" data-sys="graph"><i></i>graph <small>node</small></span><span class="arr" data-a="graph"></span>
+      <span class="step" data-s="search" data-sys="search"><i></i>search <small>row</small></span>
+    </div></div>
+  <div class="box" style="left:8px;top:74px;width:468px;height:256px">
+    <div class="tabs"><span class="tab on" data-t="wiki" data-sys="wiki"><i></i>Wiki</span><span class="tab" data-t="graph" data-sys="graph"><i></i>Graph</span><span class="tab" data-t="search" data-sys="search"><i></i>Search</span><span class="tab" data-t="trace"><i></i>Trace</span></div>
+    <div class="view on" data-v="wiki">
+      <div class="tree"><div class="dir">agent/</div><div>dietary-preference-kosher</div><div>dietary-preference-vegan</div><div class="new">dislikes-sushi</div><div>likes-pizza</div><div class="dir">projects/</div><div>payments/limits</div><div>web/tooling</div><div class="dir">team/</div><div>people/maya</div><div>patterns/release-rhythm</div><div>MEMORY.md</div></div>
+      <div class="page" id="dpage"><h3>Likes pizza</h3><div class="by">by <b>user:presenter</b> · agent:omp-live</div>The user likes pizza.</div>
+    </div>
+    <div class="view" data-v="graph">
+      <svg class="gsvg" width="468" height="230" viewBox="0 0 468 230">
+        <line class="g-old" x1="330" y1="42" x2="404" y2="96"/><line class="g-old" x1="384" y1="186" x2="424" y2="130"/><line class="g-old" x1="404" y1="96" x2="424" y2="130"/>
+        <g class="gnew" id="dge"><line class="g-link" x1="190" y1="114" x2="330" y2="42"/><line class="g-link" x1="190" y1="114" x2="350" y2="114"/><line class="g-link" x1="190" y1="114" x2="330" y2="186"/>
+          <line class="g-prov" x1="190" y1="114" x2="70" y2="46"/><line class="g-prov" x1="190" y1="114" x2="56" y2="118"/><line class="g-prov" x1="190" y1="114" x2="76" y2="190"/>
+          <text class="sm" x="250" y="70">relates_to · inline</text><text class="sm" x="92" y="74">provenance:instructed</text></g>
+        <circle class="g-node" cx="330" cy="42" r="8"/><text x="292" y="26">Dietary preference: vegan</text>
+        <circle class="g-node" cx="350" cy="114" r="8"/><text x="364" y="118">Dietary pref.: kosher</text>
+        <circle class="g-node" cx="330" cy="186" r="8"/><text x="306" y="210">Likes pizza</text>
+        <circle class="g-dim" cx="404" cy="96" r="6"/><circle class="g-dim" cx="424" cy="130" r="6"/><circle class="g-dim" cx="384" cy="186" r="6"/>
+        <g class="gnew" id="dgc"><rect class="g-human" x="64" y="40" width="12" height="12" rx="2"/><text class="sm" x="44" y="33">user:presenter</text>
+          <path class="g-agent" d="M56 110 l8 8 -8 8 -8 -8z"/><text class="sm" x="28" y="140">agent:omp-live</text>
+          <circle class="g-system" cx="76" cy="190" r="5"/><text class="sm" x="50" y="208">system:wiki</text></g>
+        <g class="gnew" id="dgn"><circle class="ring" cx="190" cy="114" r="11"/><circle class="pulse g-mem" cx="190" cy="114" r="11"/><text class="lbl" x="158" y="94">Dislikes sushi</text></g>
+      </svg>
+    </div>
+    <div class="view" data-v="search">
+      <div class="q-box" id="dq"><span class="c">⌕ search…</span></div>
+      <table class="stbl"><tr><th>title</th><th>folder</th><th>written by</th><th>snippet</th></tr>
+        <tr class="new" id="dsrow"><td><b>Dislikes sushi</b></td><td>agent/</td><td>agent · human · system</td><td>…does not like <mark>sushi</mark>. Consistent…</td></tr>
+        <tr><td>Likes pizza</td><td>agent/</td><td>agent · human</td><td>The user likes pizza.</td></tr>
+        <tr><td>Dietary preference: vegan</td><td>agent/</td><td>agent · human</td><td>…eats vegan…</td></tr>
+        <tr><td>Maya owns billing</td><td>team/people/</td><td>human</td><td>Maya Chen owns the…</td></tr></table>
+    </div>
+    <div class="view" data-v="trace">
+      <table class="stbl tr"><tr><th>field</th><th>wiki</th><th>OMP export</th><th>graph</th><th>search</th></tr>
+      ${FIELDS.map(f=>`<tr><td style="font-family:var(--mono);color:var(--tx)">${f[0]}</td>${[1,2,3,4].map(c=>`<td style="color:${STATUS_COLOR[f[c][1]]};${f[c][1]==='drop'?'font-style:italic':''}">${f[c][0]}</td>`).join('')}</tr>`).join('')}</table></div>
+  </div>
+  <div class="box" style="left:484px;top:74px;width:228px;height:256px">${bar('','Agent',' cwd: wiki/','deepseek-v4.1-flash')}
+    <div class="chat">
+      <div class="msg u">remember I don't like sushi</div>
+      <div class="msg tool"><b>read</b> MEMORY.md</div>
+      <div class="msg tool"><b>ls</b> agent/</div>
+      <div class="msg tool"><b>write</b> agent/dislikes-sushi.md<br>title · tags · provenance · 3 [[links]]</div>
+      <div class="msg a">Saved. It links your vegan, kosher and pizza notes.</div>
+    </div></div>
+  <div class="box" style="left:8px;top:336px;width:704px;height:64px">${bar('','Receipts','','omp-export/receipts/')}
+    <div class="rlog">
+      <div class="new" id="drc"><span class="t">20:48:21</span><span class="who">wiki</span><span><i></i>accepted · imported; version 1 · <span class="c">3ad00eea-e4d9…</span></span></div>
+      <div><span class="t">20:25:32</span><span class="who">seed</span><span><i></i>accepted · seeded · <span class="c">5a0f93bd-rate-limit</span></span></div>
+      <div><span class="t">20:25:32</span><span class="who">seed</span><span><i></i>accepted · seeded · <span class="c">e7b9a210-billing-owner</span></span></div>
+    </div></div>
+  ${rail()}`;
+}
+async function playD(s,w){
+  buildD(s);
+  const lit=st=>{ s.querySelector(`.step[data-s="${st}"]`).classList.add('lit'); const a=s.querySelector(`.arr[data-a="${st}"]`); if(a) a.classList.add('lit'); };
+  const tab=t=>{ s.querySelectorAll('.tab').forEach(e=>e.classList.toggle('on',e.dataset.t===t)); s.querySelectorAll('.view').forEach(v=>v.classList.toggle('on',v.dataset.v===t)); };
+  const what=s.querySelector('#dwhat'), msgs=[...s.querySelectorAll('.msg')];
+  setCap(s,0,'Someone asks the agent to remember something. Its working directory is the wiki.');
+  msgs[0].classList.add('on'); await w(900);
+  what.innerHTML='<b>Agent</b> read <span class="q">MEMORY.md</span>'; lit('agent');
+  msgs[1].classList.add('on'); await w(600); msgs[2].classList.add('on'); await w(600);
+  msgs[3].classList.add('on'); what.innerHTML='<b>Agent</b> write <span class="q">agent/dislikes-sushi.md</span>'; await w(700);
+  setCap(s,1,'The file appears and <code>normalize()</code> mints its identifier. The page switches to the Wiki tab and opens it.');
+  lit('wiki'); tab('wiki');
+  const nf=s.querySelector('.tree .new'); nf.classList.add('on','sel');
+  const pg=s.querySelector('#dpage');
+  pg.innerHTML=`<h3>Dislikes sushi</h3><div class="by">by <b>user:presenter</b> (instructed) · <b>agent:omp-live</b> (authored)</div>The user does not like sushi. Consistent with, and no conflict to, their existing food preferences (<a>Dietary preference: vegan</a>, <a>Dietary preference: kosher</a>, <a>Likes pizza</a>). It just rules sushi out for team meals and restaurant picks.<div class="meta">identifier ${ID}<br>tags preference, person · created_at ${TIME}</div>`;
+  flash(pg);
+  await w(1800);
+  setCap(s,2,'The sync exports it: links resolved, version 1, <code>system:wiki</code> appended, checksum computed. A receipt lands.');
+  lit('export'); what.innerHTML=`<b>wiki</b> exported <span class="q">Dislikes sushi · v1 · ${CS.slice(7,15)}…</span>`;
+  s.querySelector('#drc').classList.add('on'); s.querySelector('#dcount').innerHTML='<b>15</b> memories';
+  await w(1300);
+  msgs[4].classList.add('on');
+  setCap(s,3,'Graph imports it: a node, dotted edges for the three inline links, a node per contributor.');
+  lit('graph'); tab('graph'); what.innerHTML='<b>graph</b> imported <span class="q">1 node · 3 links · 3 contributors</span>';
+  await w(300);
+  s.querySelector('#dgn').classList.add('on'); s.querySelector('#dgn .pulse').classList.add('go'); s.querySelector('#dgn .ring').classList.add('go'); await w(450);
+  s.querySelector('#dge').classList.add('on'); await w(400); s.querySelector('#dgc').classList.add('on');
+  await w(1900);
+  setCap(s,4,'Search imports it: a new row, faceted by folder and by who wrote it.');
+  lit('search'); tab('search'); what.innerHTML='<b>search</b> imported <span class="q">docs + docs_fts</span>';
+  const q=s.querySelector('#dq'); q.textContent='⌕ '; for(const ch of 'sushi'){ q.textContent+=ch; await w(90); }
+  const r=s.querySelector('#dsrow'); r.classList.add('on'); flash(r);
+  await w(1900);
+  setCap(s,5,'Trace: one memory across every system, and what each keeps, reshapes, adds or holds opaque.');
+  tab('trace');
+  await w(2800);
+}
+
+// ---------------- mount ----------------
+const OPTIONS = [
+  {id:'A', title:'Trace, built live', fn:playA, blurb:'The Trace page assembles itself. Each wiki line lights as it becomes an OMP field, then the graph and search columns fill in.'},
+  {id:'B', title:'Field lanes', fn:playB, blurb:'Every field is a lane. A dot carries it across the four systems and takes the colour of what happened to it there.'},
+  {id:'C', title:'Under the hood', fn:playC, blurb:'The call order from sync.py and the adapters, line by line, with the record and the native stores filling in as each line runs.'},
+  {id:'D', title:'The projector', fn:playD, blurb:'The live dashboard in the new theme: the agent writes, the flow strip lights system by system, and each tab shows its change.'},
+];
+const ICON = '<svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"><path d="M13.5 8a5.5 5.5 0 1 1-1.6-3.9"/><path d="M13.5 2.5v3h-3"/></svg>';
+const root=document.getElementById('root');
+for(const o of OPTIONS){
+  root.insertAdjacentHTML('beforeend',`<section class="panel"><div class="phead"><span class="letter">${o.id}</span><div><h2>${o.title}</h2><p>${o.blurb}</p></div><button>${ICON}Replay</button></div><div class="vp"><div class="stage ${o.id}"></div></div></section>`);
+  const sec=root.lastElementChild, vp=sec.querySelector('.vp'), stage=sec.querySelector('.stage'), ctl={gen:0};
+  new ResizeObserver(()=>{ stage.style.transform=`scale(${vp.clientWidth/720})`; }).observe(vp);
+  const run=async()=>{ const g=++ctl.gen, w=waiter(ctl,g);
+    try{ while(true){ await o.fn(stage,w); await w(3500); } } catch(e){ if(e!==CANCEL) console.error(e); } };
+  sec.querySelector('button').onclick=run;
+  run();
+}
+</script>
+</body>
+</html>
